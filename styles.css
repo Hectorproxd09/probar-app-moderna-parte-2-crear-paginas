@@ -1,13 +1,13 @@
 :root {
     --bg-dark: #0a0a0b;
-    --panel-dark: #16161a;
+    --panel-dark: #141417;
     --accent: #00f0ff;
     --text-main: #e0e0e0;
     --glass: rgba(255, 255, 255, 0.03);
-    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.1);
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
 
 body {
     background-color: var(--bg-dark);
@@ -18,61 +18,59 @@ body {
     overflow: hidden;
 }
 
-/* TOPBAR ESTILO PRO */
+/* TOPBAR */
 .topbar {
-    height: 60px;
+    height: 65px;
     background: var(--panel-dark);
     display: flex;
     align-items: center;
     padding: 0 20px;
-    gap: 12px;
+    gap: 10px;
     border-bottom: 1px solid var(--glass-border);
     z-index: 100;
 }
 
 .topbar button {
-    background: var(--glass);
+    background: #1f1f23;
     border: 1px solid var(--glass-border);
     color: white;
-    padding: 8px 15px;
+    padding: 8px 14px;
     border-radius: 6px;
     cursor: pointer;
-    transition: 0.2s;
     font-size: 13px;
+    transition: 0.3s;
 }
 
 .topbar button:hover {
-    background: var(--accent);
-    color: black;
-    box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0, 240, 255, 0.05);
 }
 
 .topbar input {
     background: #000;
     border: 1px solid var(--glass-border);
     color: white;
-    padding: 8px;
+    padding: 8px 12px;
     border-radius: 6px;
-    width: 250px;
+    width: 220px;
+    outline: none;
 }
 
-/* CONTENEDOR PRINCIPAL */
+/* APP LAYOUT */
 .app {
     display: flex;
     flex: 1;
     overflow: hidden;
 }
 
-/* CANVAS (ÁREA DE TRABAJO) */
 #canvas {
     flex: 1;
     position: relative;
-    background-color: #111;
+    background-color: #0f0f11;
     overflow: hidden;
-    /* Esto ayuda a centrar el contenido visualmente */
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    background-size: cover;
+    background-position: center;
 }
 
 .bg-video {
@@ -81,83 +79,79 @@ body {
     left: 50%;
     min-width: 100%;
     min-height: 100%;
-    width: auto;
-    height: auto;
     transform: translate(-50%, -50%);
     z-index: 0;
     pointer-events: none;
+    object-fit: cover;
 }
 
-/* ELEMENTOS DENTRO DEL CANVAS */
+/* ELEMENTOS DINÁMICOS */
 .element {
     position: absolute;
     cursor: move;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: outline 0.1s;
     user-select: none;
+    z-index: 1;
 }
 
 .element.panel {
-    background: var(--glass);
+    background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(15px);
     -webkit-backdrop-filter: blur(15px);
-    border: 1px solid var(--glass-border);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
 }
 
 .element.button {
     background: var(--accent);
-    color: black;
+    color: #000;
     padding: 10px 20px;
     border-radius: 8px;
     text-decoration: none;
-    font-weight: bold;
+    font-weight: 600;
 }
 
 .element.selected {
     outline: 2px solid var(--accent);
-    z-index: 999 !important;
 }
 
-/* MANEJADORES DE RESIZE (HANDLES) */
+/* HANDLES DE REDIMENSIÓN */
 .handle {
     position: absolute;
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     background: var(--accent);
-    border-radius: 50%;
-    z-index: 1001;
+    border-radius: 2px;
 }
+.handle.br { bottom: -4px; right: -4px; cursor: nwse-resize; }
+.handle.tr { top: -4px; right: -4px; cursor: nesw-resize; }
+.handle.bl { bottom: -4px; left: -4px; cursor: nesw-resize; }
+.handle.tl { top: -4px; left: -4px; cursor: nwse-resize; }
+.handle.r { top: 50%; right: -4px; transform: translateY(-50%); cursor: e-resize; }
+.handle.l { top: 50%; left: -4px; transform: translateY(-50%); cursor: w-resize; }
+.handle.t { left: 50%; top: -4px; transform: translateX(-50%); cursor: n-resize; }
+.handle.b { left: 50%; bottom: -4px; transform: translateX(-50%); cursor: s-resize; }
 
-.handle.br { bottom: -5px; right: -5px; cursor: nwse-resize; }
-.handle.tr { top: -5px; right: -5px; cursor: nesw-resize; }
-.handle.bl { bottom: -5px; left: -5px; cursor: nesw-resize; }
-.handle.tl { top: -5px; left: -5px; cursor: nwse-resize; }
-.handle.r { top: 50%; right: -5px; transform: translateY(-50%); cursor: e-resize; }
-.handle.l { top: 50%; left: -5px; transform: translateY(-50%); cursor: w-resize; }
-.handle.t { left: 50%; top: -5px; transform: translateX(-50%); cursor: n-resize; }
-.handle.b { left: 50%; bottom: -5px; transform: translateX(-50%); cursor: s-resize; }
-
-/* PANEL LATERAL DE PROPIEDADES Y CÓDIGO */
+/* PANEL DERECHO */
 .panel-ui {
-    width: 350px;
+    width: 320px;
     background: var(--panel-dark);
     border-left: 1px solid var(--glass-border);
     padding: 20px;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 15px;
-    overflow-y: auto;
 }
 
 .panel-ui h3 {
-    font-size: 0.9rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 1px;
     color: var(--accent);
-    margin-bottom: 5px;
+    letter-spacing: 1.5px;
+    margin-top: 10px;
 }
 
 .panel-ui input {
@@ -165,22 +159,21 @@ body {
     border: 1px solid var(--glass-border);
     color: white;
     padding: 10px;
-    border-radius: 6px;
+    border-radius: 4px;
     width: 100%;
 }
 
 .panel-ui pre {
-    background: #000;
-    padding: 10px;
+    background: #08080a;
+    padding: 12px;
     border-radius: 6px;
     font-size: 11px;
-    color: #888;
+    color: #a0a0a0;
     overflow-x: auto;
-    max-height: 200px;
-    border: 1px solid #222;
+    border: 1px solid #1a1a1d;
+    max-height: 180px;
 }
 
-hr { border: 0; border-top: 1px solid var(--glass-border); margin: 10px 0; }
+#prop-color { height: 40px; padding: 2px; cursor: pointer; }
 
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+hr { border: 0; border-top: 1px solid var(--glass-border); margin: 5px 0; }
