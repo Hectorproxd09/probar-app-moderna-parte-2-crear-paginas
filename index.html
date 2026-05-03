@@ -1,60 +1,50 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Builder - Glassmorphism</title>
-    <!-- Enlazamos el archivo CSS -->
-    <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<title>Velion Builder</title>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-    <!-- Barra de Herramientas -->
-    <div id="toolbar" class="glass">
-        <h2>Herramientas Pro</h2>
-        
-        <div class="tool-group">
-            <button id="btn-add-panel">+ Agregar Panel Vidrio</button>
-            <button id="btn-add-text">+ Agregar Texto</button>
-            <button id="btn-add-link">+ Agregar Enlace/Botón</button>
-        </div>
+<div class="topbar">
+  <button onclick="addElement('text')">Texto</button>
+  <button onclick="addElement('button')">Botón</button>
+  <button onclick="addElement('panel')">Panel</button>
 
-        <div class="tool-group">
-            <label>Fondo de Pantalla (URL)</label>
-            <input type="text" id="bg-url" placeholder="URL imagen/video...">
-        </div>
+  <input id="bg-url" placeholder="Fondo (img o video)">
+  <button onclick="setBackground()">Aplicar</button>
 
-        <div class="tool-group">
-            <label>Propiedades (Elemento Seleccionado)</label>
-            <div class="row">
-                <input type="color" id="elem-color" title="Color del texto">
-                <input type="color" id="elem-bg" title="Color de fondo">
-            </div>
-            <input type="number" id="elem-size" placeholder="Tamaño fuente (px)">
-            <div class="row">
-                <button class="align-btn" data-align="left">Izquierda</button>
-                <button class="align-btn" data-align="center">Centro</button>
-                <button class="align-btn" data-align="right">Derecha</button>
-            </div>
-            <button id="btn-delete" style="background: #ff4757; color: white; border: none;">Eliminar Seleccionado</button>
-        </div>
-    </div>
+  <!-- 🔥 NUEVO -->
+  <button onclick="toggleSnap()">▢ Snap</button>
 
-    <!-- Área de Trabajo -->
-    <div id="workspace-container">
-        <div id="workspace">
-            <!-- Los elementos se agregarán aquí -->
-        </div>
-    </div>
+  <button onclick="undo()">↶</button>
+  <button onclick="redo()">↷</button>
+</div>
 
-    <!-- Panel de Código -->
-    <div id="code-panel" class="glass">
-        <h2>Estructura Exportada</h2>
-        <textarea id="code-output" readonly></textarea>
-    </div>
-    <button id="toggle-code">💻 Ver HTML/CSS</button>
+<div class="app">
+  <div id="canvas"></div>
 
-    <!-- Enlazamos el archivo JS -->
-    <script src="script.js"></script>
+  <div class="panel-ui">
+    <h3>Propiedades</h3>
+
+    <input id="prop-text" placeholder="Texto">
+    <input id="prop-size" type="number">
+    <input id="prop-color" type="color">
+    <input id="prop-link" placeholder="Link">
+
+    <button onclick="deleteElement()">Eliminar</button>
+
+    <hr>
+
+    <h3>HTML</h3>
+    <pre id="html-code"></pre>
+
+    <h3>CSS</h3>
+    <pre id="css-code"></pre>
+  </div>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
