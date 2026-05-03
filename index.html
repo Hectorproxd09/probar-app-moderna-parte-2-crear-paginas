@@ -2,8 +2,9 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Velion Studio v3</title>
+    <title>Velion Logic Editor v4</title>
     <style>
+        /* === CSS: LA ESTÉTICA === */
         :root {
             --bg: #050505;
             --side: #111112;
@@ -15,7 +16,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
         body { background: var(--bg); color: white; height: 100vh; display: flex; overflow: hidden; }
 
-        /* BARRA IZQUIERDA */
+        /* Barra a la izquierda */
         .sidebar {
             width: 300px;
             background: var(--side);
@@ -33,43 +34,43 @@
             background: #1a1a1c; border: 1px solid var(--border); color: white;
             padding: 10px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: 0.2s;
         }
-        button:hover { border-color: var(--accent); background: var(--accent); color: black; }
+        button:hover { background: var(--accent); color: black; font-weight: bold; }
 
         input {
             width: 100%; background: #000; border: 1px solid var(--border);
             color: white; padding: 8px; border-radius: 4px; margin-bottom: 10px; outline: none;
         }
 
-        /* LIENZO */
+        /* Lienzo de trabajo */
         #viewport { flex: 1; position: relative; background: #0a0a0a; overflow: hidden; }
         #canvas { width: 100%; height: 100%; position: relative; background-size: cover; background-position: center; }
 
-        /* OBJETOS */
+        /* Elementos dinámicos */
         .element {
             position: absolute; min-width: 40px; min-height: 40px;
             display: flex; align-items: center; justify-content: center;
-            cursor: move; outline: 1px solid transparent; transition: outline 0.1s;
+            cursor: move; outline: 2px solid transparent;
         }
         .element.selected { outline: 2px solid var(--accent); }
         
-        .element.text { padding: 5px; font-weight: bold; line-height: 1; white-space: nowrap; }
+        .element.text { padding: 10px; white-space: nowrap; font-weight: bold; }
         .element.panel {
             background: var(--glass); backdrop-filter: blur(15px);
-            border: 1px solid var(--border); border-radius: 12px;
+            border: 1px solid var(--border); border-radius: 15px;
         }
 
-        /* RESIZER */
+        /* Tirador para agrandar/achicar */
         .resizer {
-            width: 12px; height: 12px; background: var(--accent);
-            position: absolute; right: -6px; bottom: -6px;
-            cursor: nwse-resize; border-radius: 2px; display: none; z-index: 50;
+            width: 14px; height: 14px; background: var(--accent);
+            position: absolute; right: -7px; bottom: -7px;
+            cursor: nwse-resize; border-radius: 3px; display: none; z-index: 100;
         }
         .element.selected .resizer { display: block; }
 
-        /* CÓDIGO EXPORTADO */
+        /* Pantalla de código */
         #code-display {
             margin-top: auto; padding: 15px; background: #000; font-size: 9px;
-            color: #666; max-height: 200px; overflow: auto; border-top: 1px solid var(--border);
+            color: #666; max-height: 180px; overflow: auto; border-top: 1px solid var(--border);
         }
     </style>
 </head>
@@ -77,7 +78,7 @@
 
 <div class="sidebar">
     <div class="menu-section">
-        <h3>Insertar</h3>
+        <h3>Herramientas</h3>
         <div class="btn-group">
             <button onclick="addObj('text')">+ Texto</button>
             <button onclick="addObj('panel')">+ Panel</button>
@@ -85,18 +86,17 @@
     </div>
 
     <div class="menu-section">
-        <h3>Fondo Profundo</h3>
-        <input id="bg-url" placeholder="URL Imagen o Video .mp4">
-        <button style="width:100%" onclick="setBg()">Actualizar Fondo</button>
+        <h3>Fondo Dinámico</h3>
+        <input id="bg-url" placeholder="URL de Imagen o MP4">
+        <button style="width:100%" onclick="setBg()">Aplicar Fondo</button>
     </div>
 
     <div class="menu-section">
-        <h3>Configuración</h3>
-        <label style="font-size: 11px;">Color de Elemento</label>
-        <input type="color" id="el-color" oninput="updateElProps()" style="height: 35px;">
+        <h3>Color</h3>
+        <input type="color" id="el-color" oninput="updateColor()" style="height: 40px;">
     </div>
 
-    <pre id="code-display">El código aparecerá aquí...</pre>
+    <pre id="code-display">Generando código...</pre>
 </div>
 
 <div id="viewport">
@@ -104,6 +104,7 @@
 </div>
 
 <script>
+    /* === JAVASCRIPT: LA LOGÍSTICA === */
     let elements = [];
     let selectedId = null;
     let bgData = { type: 'none', url: '' };
@@ -115,12 +116,12 @@
         const el = {
             id: id,
             type: type,
-            text: type === 'text' ? 'DOBLE CLIC' : '',
-            x: 100, y: 100,
-            w: type === 'text' ? 200 : 250,
-            h: type === 'text' ? 50 : 150,
+            text: type === 'text' ? 'DOBLE CLIC AQUÍ' : '',
+            x: 150, y: 150,
+            w: type === 'text' ? 220 : 250,
+            h: type === 'text' ? 60 : 150,
             color: '#ffffff',
-            size: 32
+            size: 30
         };
         elements.push(el);
         selectedId = id;
@@ -135,8 +136,7 @@
         render();
     }
 
-    // ACTUALIZAR COLOR
-    function updateElProps() {
+    function updateColor() {
         const el = elements.find(e => e.id === selectedId);
         if(el) {
             el.color = document.getElementById('el-color').value;
@@ -144,13 +144,13 @@
         }
     }
 
-    // TECLA BORRAR (BACKSPACE / DELETE)
+    // LOGÍSTICA DE TECLADO: Diferenciar entre borrar texto y borrar objeto
     window.addEventListener('keydown', (e) => {
-        if((e.key === 'Delete' || e.key === 'Backspace')) {
-            // SI ESTÁ EDITANDO TEXTO, NO BORRAR EL OBJETO
-            if(document.activeElement.getAttribute('contenteditable') === "true") return;
-            
-            if(selectedId) {
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+            // Si el usuario tiene el cursor dentro de un texto, NO borramos el objeto
+            if (document.activeElement.getAttribute('contenteditable') === "true") return;
+
+            if (selectedId) {
                 elements = elements.filter(el => el.id !== selectedId);
                 selectedId = null;
                 render();
@@ -161,9 +161,8 @@
     function render() {
         canvas.innerHTML = '';
         
-        // Render Fondo
+        // Cargar Fondo
         if(bgData.type === 'video') {
-            canvas.style.backgroundImage = 'none';
             const vid = document.createElement('video');
             vid.src = bgData.url; vid.autoplay = vid.loop = vid.muted = true;
             vid.style = "position:absolute; width:100%; height:100%; object-fit:cover; z-index:0; pointer-events:none;";
@@ -175,14 +174,21 @@
         elements.forEach(el => {
             const div = document.createElement('div');
             div.className = `element ${el.type} ${el.id === selectedId ? 'selected' : ''}`;
-            div.style = `left:${el.x}px; top:${el.y}px; width:${el.w}px; height:${el.h}px; color:${el.color}; font-size:${el.size}px; z-index:10;`;
+            div.style.left = el.x + 'px';
+            div.style.top = el.y + 'px';
+            div.style.width = el.w + 'px';
+            div.style.height = el.h + 'px';
+            div.style.color = el.color;
+            div.style.fontSize = el.size + 'px';
             
             if(el.type === 'text') {
                 div.innerText = el.text;
+                // LOGÍSTICA DE EDICIÓN: Doble clic para escribir
                 div.ondblclick = (e) => {
                     div.contentEditable = true;
                     div.focus();
                 };
+                // Guardar cambios al terminar
                 div.onblur = () => {
                     div.contentEditable = false;
                     el.text = div.innerText;
@@ -190,12 +196,12 @@
                 };
             }
 
-            // DRAG (MOVIMIENTO)
+            // LOGÍSTICA DE MOVIMIENTO
             div.onmousedown = (e) => {
                 if(div.contentEditable === "true" || e.target.classList.contains('resizer')) return;
+                
                 selectedId = el.id;
-                document.querySelectorAll('.element').forEach(item => item.classList.remove('selected'));
-                div.classList.add('selected');
+                render(); // Refrescar para mostrar bordes de selección
 
                 let startX = e.clientX - el.x;
                 let startY = e.clientY - el.y;
@@ -210,10 +216,10 @@
                 document.onmouseup = () => { document.onmousemove = null; };
             };
 
-            // RESIZER (AGRANDAR/ACHICAR)
-            const r = document.createElement('div');
-            r.className = 'resizer';
-            r.onmousedown = (e) => {
+            // LOGÍSTICA DE REDIMENSIÓN (AGRANDAR/ACHICAR)
+            const resizer = document.createElement('div');
+            resizer.className = 'resizer';
+            resizer.onmousedown = (e) => {
                 e.stopPropagation();
                 let startW = el.w;
                 let startX = e.clientX;
@@ -221,12 +227,15 @@
 
                 document.onmousemove = (e2) => {
                     let diff = e2.clientX - startX;
-                    el.w = startW + diff;
-                    el.h = (el.type === 'text') ? el.h : el.h + (diff * 0.5); // Los paneles crecen en alto también
+                    el.w = Math.max(40, startW + diff);
                     
+                    // Si es texto, el tamaño de fuente cambia proporcionalmente
                     if(el.type === 'text') {
-                        el.size = Math.max(10, startSize + (diff * 0.4)); // Escala el texto
+                        el.size = Math.max(12, startSize + (diff * 0.5));
                         div.style.fontSize = el.size + 'px';
+                    } else {
+                        // Si es panel, también crece hacia abajo
+                        el.h = Math.max(40, el.h + (diff * 0.2)); 
                     }
                     
                     div.style.width = el.w + 'px';
@@ -235,7 +244,7 @@
                 };
                 document.onmouseup = () => { document.onmousemove = null; };
             };
-            div.appendChild(r);
+            div.appendChild(resizer);
 
             canvas.appendChild(div);
         });
@@ -247,13 +256,15 @@
         let css = `body { background: ${bgData.type === 'image' ? `url('${bgData.url}')` : '#000'} center/cover; }\n`;
 
         elements.forEach((el, i) => {
-            html += `<div class="item-${i}">${el.text}</div>\n`;
-            css += `.item-${i} { position: absolute; left: ${el.x}px; top: ${el.y}px; color: ${el.color}; font-size: ${el.size}px; }\n`;
+            html += `<div class="obj-${i}">${el.text}</div>\n`;
+            css += `.obj-${i} { position: absolute; left: ${el.x}px; top: ${el.y}px; color: ${el.color}; font-size: ${el.size}px; }\n`;
         });
         document.getElementById('code-display').innerText = html + "\n" + css;
     }
 
+    // Deseleccionar al tocar el fondo vacío
     canvas.onclick = (e) => { if(e.target === canvas) { selectedId = null; render(); } };
+
     render();
 </script>
 
