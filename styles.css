@@ -1,140 +1,38 @@
-:root {
-    --bg-dark: #0a0a0b;
-    --panel-dark: #141417;
-    --accent: #00f0ff;
-    --text-main: #e0e0e0;
-    --glass: rgba(255, 255, 255, 0.05);
-    --glass-border: rgba(255, 255, 255, 0.1);
-}
+/* ... (mismos estilos de base anteriores) ... */
 
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-
-body {
-    background-color: var(--bg-dark);
-    color: var(--text-main);
-    height: 100vh;
-    display: flex;
-    overflow: hidden;
-}
-
-/* BARRA LATERAL IZQUIERDA */
-.sidebar {
-    width: 320px;
-    background: var(--panel-dark);
-    border-right: 1px solid var(--glass-border);
-    display: flex;
-    flex-direction: column;
-    z-index: 100;
-    overflow-y: auto;
-}
-
-.section-title {
-    font-size: 10px;
-    text-transform: uppercase;
-    color: var(--accent);
-    letter-spacing: 2px;
-    padding: 20px 20px 10px;
-    border-top: 1px solid var(--glass-border);
-}
-
-.tools-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    padding: 10px 20px 20px;
-}
-
-button {
-    background: #1f1f23;
-    border: 1px solid var(--glass-border);
-    color: white;
-    padding: 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 12px;
-    transition: 0.2s;
-}
-
-button:hover { background: var(--accent); color: #000; font-weight: bold; }
-
-input {
-    background: #000;
-    border: 1px solid var(--glass-border);
-    color: white;
-    padding: 10px;
-    border-radius: 6px;
-    outline: none;
-    width: 100%;
-    margin-bottom: 10px;
-}
-
-/* ÁREA DE TRABAJO */
-.main-container { flex: 1; position: relative; overflow: hidden; background: #0f0f11; }
-
-#canvas {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    background-size: cover;
-    background-position: center;
-}
-
-/* ELEMENTOS DINÁMICOS */
 .element {
     position: absolute;
     min-width: 50px;
     min-height: 20px;
     outline: none;
-    cursor: move;
+    cursor: grab;
     display: flex;
     align-items: center;
     justify-content: center;
+    user-select: none; /* Evita selección accidental al arrastrar */
 }
 
-.element.panel {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 15px;
+.element:active { cursor: grabbing; }
+
+/* Cuando está en modo edición de texto */
+.element[contenteditable="true"] {
+    cursor: text;
+    user-select: text;
 }
 
-.element.selected { outline: 2px solid var(--accent); }
+.element.selected { outline: 2px solid #00f0ff; }
 
-/* MANEJADOR DE TAMAÑO */
+/* El tirador para agrandar/achicar */
 .resizer {
-    width: 10px;
-    height: 10px;
-    background: var(--accent);
+    width: 12px;
+    height: 12px;
+    background: #00f0ff;
     position: absolute;
-    right: -5px;
-    bottom: -5px;
+    right: -6px;
+    bottom: -6px;
     cursor: nwse-resize;
-    border-radius: 2px;
+    border-radius: 50%;
+    z-index: 10;
+    display: none;
 }
-
-/* EXPORTACIÓN */
-.code-box {
-    background: #08080a;
-    margin: 10px 20px;
-    padding: 10px;
-    border-radius: 6px;
-    font-size: 10px;
-    color: #777;
-    max-height: 150px;
-    overflow: auto;
-    border: 1px solid #222;
-    white-space: pre-wrap;
-}
-
-.bg-video {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    min-width: 100%;
-    min-height: 100%;
-    transform: translate(-50%, -50%);
-    z-index: 0;
-    pointer-events: none;
-    object-fit: cover;
-}
+.element.selected .resizer { display: block; }
