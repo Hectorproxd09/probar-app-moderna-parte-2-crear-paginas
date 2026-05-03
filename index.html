@@ -3,41 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Velion Pro | Delicias del Rancho</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="styles.css">
+    <title>Mini Canva</title>
 </head>
 <body>
-
-    <aside class="sidebar">
-        <section class="menu-group">
-            <h3>Componentes</h3>
-            <div class="grid">
-                <button onclick="add('text')">Texto</button>
-                <button onclick="add('panel')">Panel Glass</button>
-            </div>
-        </section>
-
-        <section class="menu-group">
-            <h3>Atmósfera</h3>
-            <input type="text" id="bg-url" placeholder="URL imagen o video .mp4" onchange="updateBg()">
-        </section>
-
-        <section class="menu-group">
-            <h3>Estilo</h3>
-            <label>Color Global</label>
-            <input type="color" id="main-color" oninput="applyColor()">
-        </section>
-
-        <div class="export-zone">
-            <h3>Código Generado</h3>
-            <pre id="html-code"></pre>
-        </div>
-    </aside>
-
-    <main id="viewport">
+    <div id="app">
         <div id="canvas"></div>
-    </main>
-
+        <div id="sidebar">
+            <h2>Estructura</h2>
+            <textarea id="codeView" readonly></textarea>
+            <input type="url" id="bgInput" placeholder="URL de imagen/video" />
+            <button id="setBg">Cambiar Fondo</button>
+            <button id="addText">Agregar Texto</button>
+            <button id="applyStyles">Aplicar Estilos</button>
+            <button id="align">Alinear</button>
+        </div>
+    </div>
     <script src="script.js"></script>
 </body>
 </html>
