@@ -1,181 +1,186 @@
-/* Variables y Reset */
 :root {
-    --glass-bg: rgba(255, 255, 255, 0.05);
-    --glass-border: rgba(255, 255, 255, 0.1);
+    --bg-dark: #0a0a0b;
+    --panel-dark: #16161a;
     --accent: #00f0ff;
+    --text-main: #e0e0e0;
+    --glass: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.08);
 }
 
-* { 
-    box-sizing: border-box; 
-    margin: 0; 
-    padding: 0; 
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
-body { 
-    display: flex; 
-    height: 100vh; 
-    background-color: #0f0f13; 
-    color: #fff; 
-    overflow: hidden; 
+/* TOPBAR ESTILO PRO */
+.topbar {
+    height: 60px;
+    background: var(--panel-dark);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 12px;
+    border-bottom: 1px solid var(--glass-border);
+    z-index: 100;
 }
 
-/* Efecto Glassmorphism Base */
-.glass {
-    background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+.topbar button {
+    background: var(--glass);
     border: 1px solid var(--glass-border);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 13px;
 }
 
-/* Barra de Herramientas Izquierda */
-#toolbar {
-    width: 280px;
+.topbar button:hover {
+    background: var(--accent);
+    color: black;
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+}
+
+.topbar input {
+    background: #000;
+    border: 1px solid var(--glass-border);
+    color: white;
+    padding: 8px;
+    border-radius: 6px;
+    width: 250px;
+}
+
+/* CONTENEDOR PRINCIPAL */
+.app {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* CANVAS (ÁREA DE TRABAJO) */
+#canvas {
+    flex: 1;
+    position: relative;
+    background-color: #111;
+    overflow: hidden;
+    /* Esto ayuda a centrar el contenido visualmente */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.bg-video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    transform: translate(-50%, -50%);
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* ELEMENTOS DENTRO DEL CANVAS */
+.element {
+    position: absolute;
+    cursor: move;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: outline 0.1s;
+    user-select: none;
+}
+
+.element.panel {
+    background: var(--glass);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+}
+
+.element.button {
+    background: var(--accent);
+    color: black;
+    padding: 10px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.element.selected {
+    outline: 2px solid var(--accent);
+    z-index: 999 !important;
+}
+
+/* MANEJADORES DE RESIZE (HANDLES) */
+.handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    z-index: 1001;
+}
+
+.handle.br { bottom: -5px; right: -5px; cursor: nwse-resize; }
+.handle.tr { top: -5px; right: -5px; cursor: nesw-resize; }
+.handle.bl { bottom: -5px; left: -5px; cursor: nesw-resize; }
+.handle.tl { top: -5px; left: -5px; cursor: nwse-resize; }
+.handle.r { top: 50%; right: -5px; transform: translateY(-50%); cursor: e-resize; }
+.handle.l { top: 50%; left: -5px; transform: translateY(-50%); cursor: w-resize; }
+.handle.t { left: 50%; top: -5px; transform: translateX(-50%); cursor: n-resize; }
+.handle.b { left: 50%; bottom: -5px; transform: translateX(-50%); cursor: s-resize; }
+
+/* PANEL LATERAL DE PROPIEDADES Y CÓDIGO */
+.panel-ui {
+    width: 350px;
+    background: var(--panel-dark);
+    border-left: 1px solid var(--glass-border);
     padding: 20px;
     display: flex;
     flex-direction: column;
     gap: 15px;
-    z-index: 10;
     overflow-y: auto;
 }
 
-#toolbar h2 { 
-    font-size: 1.2rem; 
-    margin-bottom: 10px; 
-    color: var(--accent); 
+.panel-ui h3 {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent);
+    margin-bottom: 5px;
 }
 
-.tool-group { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 8px; 
-    border-bottom: 1px solid var(--glass-border); 
-    padding-bottom: 15px; 
-}
-
-/* Estilos de botones interactivos con efecto 3D */
-button, input, select {
-    padding: 10px; 
-    border-radius: 8px; 
+.panel-ui input {
+    background: #000;
     border: 1px solid var(--glass-border);
-    background: rgba(0,0,0,0.3); 
-    color: white; 
-    cursor: pointer; 
-    transition: all 0.3s ease;
-    transform-style: preserve-3d;
+    color: white;
+    padding: 10px;
+    border-radius: 6px;
+    width: 100%;
 }
 
-button:hover { 
-    background: var(--accent); 
-    color: black; 
-    border-color: var(--accent);
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 5px 15px rgba(0, 240, 255, 0.3);
+.panel-ui pre {
+    background: #000;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    color: #888;
+    overflow-x: auto;
+    max-height: 200px;
+    border: 1px solid #222;
 }
 
-.row { display: flex; gap: 5px; }
-.row button, .row input { flex: 1; }
+hr { border: 0; border-top: 1px solid var(--glass-border); margin: 10px 0; }
 
-/* Área de Trabajo (Canvas) */
-#workspace-container { 
-    flex: 1; 
-    position: relative; 
-    overflow: hidden; 
-}
-
-#workspace {
-    width: 100%; 
-    height: 100%; 
-    position: relative; 
-    background-size: cover; 
-    background-position: center;
-}
-
-/* Elementos dentro del Canvas */
-.canvas-element {
-    position: absolute; 
-    top: 50px; 
-    left: 50px; 
-    cursor: move; 
-    user-select: none;
-    transition: box-shadow 0.2s;
-}
-
-.canvas-element.selected { 
-    outline: 2px dashed var(--accent); 
-    outline-offset: 4px; 
-    z-index: 100; 
-}
-
-/* Panel Glass Generado */
-.glass-panel {
-    width: 200px; 
-    height: 150px; 
-    padding: 20px; 
-    border-radius: 15px;
-    resize: both; 
-    overflow: auto; 
-    display: flex; 
-    flex-direction: column;
-}
-
-/* Textos Generados */
-.canvas-text { min-width: 50px; min-height: 20px; padding: 5px; }
-.canvas-link { 
-    color: var(--accent); 
-    text-decoration: none; 
-    display: inline-block; 
-    padding: 5px; 
-    cursor: pointer; 
-}
-
-/* Panel Lateral de Código (Derecha) */
-#code-panel {
-    position: fixed; 
-    right: -400px; 
-    top: 0; 
-    width: 400px; 
-    height: 100vh;
-    padding: 20px; 
-    transition: right 0.4s ease; 
-    z-index: 20; 
-    border-left: 1px solid var(--glass-border);
-}
-
-#code-panel.active { right: 0; }
-
-#code-output {
-    width: 100%; 
-    height: calc(100% - 60px); 
-    background: #1e1e1e; 
-    color: #d4d4d4;
-    border: none; 
-    border-radius: 8px; 
-    padding: 15px; 
-    font-family: monospace; 
-    resize: none; 
-    margin-top: 15px;
-}
-
-#toggle-code {
-    position: fixed; 
-    right: 20px; 
-    bottom: 20px; 
-    z-index: 30; 
-    border-radius: 50px; 
-    padding: 15px 25px;
-    background: var(--accent); 
-    color: black; 
-    font-weight: bold; 
-    font-size: 1rem; 
-    box-shadow: 0 4px 15px rgba(0,240,255,0.4);
-}
-
-/* Optimización para Celulares */
-@media (max-width: 768px) {
-    body { flex-direction: column-reverse; }
-    #toolbar { width: 100%; height: 40vh; border-right: none; border-top: 1px solid var(--glass-border); }
-    #workspace-container { height: 60vh; }
-    #code-panel { width: 100%; right: -100%; }
-}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
