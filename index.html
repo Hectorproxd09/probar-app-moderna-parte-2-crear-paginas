@@ -1,50 +1,31 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>Velion Builder</title>
-<link rel="stylesheet" href="styles.css">
-</head>
-<body>
+<div class="sidebar">
+    <div class="top-tools">
+        <button onclick="addElement('text')">Texto</button>
+        <button onclick="addElement('panel')">Panel Vidrio</button>
+    </div>
 
-<div class="topbar">
-  <button onclick="addElement('text')">Texto</button>
-  <button onclick="addElement('button')">Botón</button>
-  <button onclick="addElement('panel')">Panel</button>
+    <h3>Fondo</h3>
+    <div class="prop-group">
+        <input id="bg-url" placeholder="URL Imagen o Video">
+        <button onclick="setBackground()">Aplicar Fondo</button>
+    </div>
 
-  <input id="bg-url" placeholder="Fondo (img o video)">
-  <button onclick="setBackground()">Aplicar</button>
+    <h3>Propiedades</h3>
+    <div class="prop-group">
+        <label>Tamaño Letra</label>
+        <input type="range" min="10" max="100" oninput="elements.find(e=>e.id==selectedId).size=this.value; render()">
+        <label>Color</label>
+        <input type="color" oninput="elements.find(e=>e.id==selectedId).color=this.value; render()">
+    </div>
 
-  <!-- 🔥 NUEVO -->
-  <button onclick="toggleSnap()">▢ Snap</button>
-
-  <button onclick="undo()">↶</button>
-  <button onclick="redo()">↷</button>
+    <div class="code-area">
+        <h3>HTML</h3>
+        <pre id="html-code"></pre>
+        <h3>CSS</h3>
+        <pre id="css-code"></pre>
+    </div>
 </div>
 
 <div class="app">
-  <div id="canvas"></div>
-
-  <div class="panel-ui">
-    <h3>Propiedades</h3>
-
-    <input id="prop-text" placeholder="Texto">
-    <input id="prop-size" type="number">
-    <input id="prop-color" type="color">
-    <input id="prop-link" placeholder="Link">
-
-    <button onclick="deleteElement()">Eliminar</button>
-
-    <hr>
-
-    <h3>HTML</h3>
-    <pre id="html-code"></pre>
-
-    <h3>CSS</h3>
-    <pre id="css-code"></pre>
-  </div>
+    <div id="canvas"></div>
 </div>
-
-<script src="script.js"></script>
-</body>
-</html>
