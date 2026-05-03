@@ -2,277 +2,201 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Velion Pro Builder</title>
+    <title>Velion Studio v3</title>
     <style>
         :root {
-            --bg-dark: #0a0a0b;
-            --panel-dark: #141417;
+            --bg: #050505;
+            --side: #111112;
             --accent: #00f0ff;
-            --text-main: #e0e0e0;
             --glass: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --border: rgba(255, 255, 255, 0.1);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg); color: white; height: 100vh; display: flex; overflow: hidden; }
 
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            height: 100vh;
-            display: flex;
-            overflow: hidden;
-        }
-
-        /* BARRA LATERAL IZQUIERDA */
+        /* BARRA IZQUIERDA */
         .sidebar {
-            width: 320px;
-            background: var(--panel-dark);
-            border-right: 1px solid var(--glass-border);
+            width: 300px;
+            background: var(--side);
+            border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
             z-index: 100;
-            overflow-y: auto;
         }
 
-        .section-title {
-            font-size: 10px;
-            text-transform: uppercase;
-            color: var(--accent);
-            letter-spacing: 2px;
-            padding: 20px 20px 10px;
-            border-top: 1px solid var(--glass-border);
-        }
+        .menu-section { padding: 20px; border-bottom: 1px solid var(--border); }
+        .menu-section h3 { font-size: 10px; text-transform: uppercase; color: var(--accent); letter-spacing: 1.5px; margin-bottom: 15px; }
 
-        .tools-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            padding: 10px 20px 20px;
-        }
-
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         button {
-            background: #1f1f23;
-            border: 1px solid var(--glass-border);
-            color: white;
-            padding: 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: 0.2s;
+            background: #1a1a1c; border: 1px solid var(--border); color: white;
+            padding: 10px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: 0.2s;
+        }
+        button:hover { border-color: var(--accent); background: var(--accent); color: black; }
+
+        input {
+            width: 100%; background: #000; border: 1px solid var(--border);
+            color: white; padding: 8px; border-radius: 4px; margin-bottom: 10px; outline: none;
         }
 
-        button:hover { background: var(--accent); color: #000; font-weight: bold; }
+        /* LIENZO */
+        #viewport { flex: 1; position: relative; background: #0a0a0a; overflow: hidden; }
+        #canvas { width: 100%; height: 100%; position: relative; background-size: cover; background-position: center; }
 
-        input, select {
-            background: #000;
-            border: 1px solid var(--glass-border);
-            color: white;
-            padding: 10px;
-            border-radius: 6px;
-            outline: none;
-            width: 100%;
-            margin-bottom: 10px;
-        }
-
-        /* ÁREA DE TRABAJO */
-        .main-container { flex: 1; position: relative; overflow: hidden; background: #0f0f11; }
-
-        #canvas {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            background-size: cover;
-            background-position: center;
-        }
-
-        /* ELEMENTOS DINÁMICOS */
+        /* OBJETOS */
         .element {
-            position: absolute;
-            min-width: 50px;
-            min-height: 20px;
-            outline: none;
-            cursor: move;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: outline 0.1s;
+            position: absolute; min-width: 40px; min-height: 40px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: move; outline: 1px solid transparent; transition: outline 0.1s;
         }
-
-        .element.panel {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-        }
-
         .element.selected { outline: 2px solid var(--accent); }
+        
+        .element.text { padding: 5px; font-weight: bold; line-height: 1; white-space: nowrap; }
+        .element.panel {
+            background: var(--glass); backdrop-filter: blur(15px);
+            border: 1px solid var(--border); border-radius: 12px;
+        }
 
-        /* MANEJADOR DE TAMAÑO */
+        /* RESIZER */
         .resizer {
-            width: 10px;
-            height: 10px;
-            background: var(--accent);
-            position: absolute;
-            right: -5px;
-            bottom: -5px;
-            cursor: nwse-resize;
-            border-radius: 2px;
-            display: none;
+            width: 12px; height: 12px; background: var(--accent);
+            position: absolute; right: -6px; bottom: -6px;
+            cursor: nwse-resize; border-radius: 2px; display: none; z-index: 50;
         }
         .element.selected .resizer { display: block; }
 
-        /* CÓDIGO */
-        .code-box {
-            background: #08080a;
-            margin: 10px 20px;
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 10px;
-            color: #777;
-            max-height: 150px;
-            overflow: auto;
-            border: 1px solid #222;
-            white-space: pre-wrap;
-        }
-
-        .bg-video {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            min-width: 100%;
-            min-height: 100%;
-            transform: translate(-50%, -50%);
-            z-index: 0;
-            pointer-events: none;
-            object-fit: cover;
+        /* CÓDIGO EXPORTADO */
+        #code-display {
+            margin-top: auto; padding: 15px; background: #000; font-size: 9px;
+            color: #666; max-height: 200px; overflow: auto; border-top: 1px solid var(--border);
         }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
-    <div class="section-title">Construcción</div>
-    <div class="tools-grid">
-        <button onclick="addElement('text')">+ Texto</button>
-        <button onclick="addElement('panel')">+ Panel</button>
+    <div class="menu-section">
+        <h3>Insertar</h3>
+        <div class="btn-group">
+            <button onclick="addObj('text')">+ Texto</button>
+            <button onclick="addObj('panel')">+ Panel</button>
+        </div>
     </div>
 
-    <div class="section-title">Fondo Profesional</div>
-    <div style="padding: 0 20px;">
-        <input id="bg-input" placeholder="URL Imagen o Video (.mp4)">
-        <button style="width: 100%;" onclick="applyBackground()">Aplicar Fondo</button>
+    <div class="menu-section">
+        <h3>Fondo Profundo</h3>
+        <input id="bg-url" placeholder="URL Imagen o Video .mp4">
+        <button style="width:100%" onclick="setBg()">Actualizar Fondo</button>
     </div>
 
-    <div class="section-title">Estilo Seleccionado</div>
-    <div style="padding: 0 20px;">
-        <label style="font-size: 11px;">Color Texto</label>
-        <input type="color" id="style-color" oninput="updateStyle()">
-        <label style="font-size: 11px;">Tamaño (px)</label>
-        <input type="number" id="style-size" value="20" oninput="updateStyle()">
+    <div class="menu-section">
+        <h3>Configuración</h3>
+        <label style="font-size: 11px;">Color de Elemento</label>
+        <input type="color" id="el-color" oninput="updateElProps()" style="height: 35px;">
     </div>
 
-    <div class="section-title">Exportación</div>
-    <div class="code-box" id="html-code">Aquí aparecerá el HTML...</div>
-    <div class="code-box" id="css-code">Aquí aparecerá el CSS...</div>
+    <pre id="code-display">El código aparecerá aquí...</pre>
 </div>
 
-<div class="main-container">
+<div id="viewport">
     <div id="canvas"></div>
 </div>
 
 <script>
     let elements = [];
     let selectedId = null;
-    let background = { type: 'none', url: '' };
+    let bgData = { type: 'none', url: '' };
 
     const canvas = document.getElementById('canvas');
 
-    // CREAR ELEMENTO
-    function addElement(type) {
+    function addObj(type) {
+        const id = Date.now();
         const el = {
-            id: Date.now(),
+            id: id,
             type: type,
-            text: type === 'text' ? 'Nuevo Texto' : '',
+            text: type === 'text' ? 'DOBLE CLIC' : '',
             x: 100, y: 100,
-            w: 200, h: 150,
+            w: type === 'text' ? 200 : 250,
+            h: type === 'text' ? 50 : 150,
             color: '#ffffff',
-            size: 24
+            size: 32
         };
         elements.push(el);
-        selectedId = el.id;
+        selectedId = id;
         render();
     }
 
-    // APLICAR FONDO
-    function applyBackground() {
-        const url = document.getElementById('bg-input').value;
+    function setBg() {
+        const url = document.getElementById('bg-url').value;
         if(!url) return;
-        background.url = url;
-        background.type = url.match(/\.(mp4|webm)$/i) ? 'video' : 'image';
+        bgData.url = url;
+        bgData.type = url.match(/\.(mp4|webm)$/i) ? 'video' : 'image';
         render();
     }
 
-    // BORRAR CON TECLADO
-    window.addEventListener('keydown', (e) => {
-        if((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
-            if(document.activeElement.isContentEditable) return;
-            elements = elements.filter(el => el.id !== selectedId);
-            selectedId = null;
+    // ACTUALIZAR COLOR
+    function updateElProps() {
+        const el = elements.find(e => e.id === selectedId);
+        if(el) {
+            el.color = document.getElementById('el-color').value;
             render();
+        }
+    }
+
+    // TECLA BORRAR (BACKSPACE / DELETE)
+    window.addEventListener('keydown', (e) => {
+        if((e.key === 'Delete' || e.key === 'Backspace')) {
+            // SI ESTÁ EDITANDO TEXTO, NO BORRAR EL OBJETO
+            if(document.activeElement.getAttribute('contenteditable') === "true") return;
+            
+            if(selectedId) {
+                elements = elements.filter(el => el.id !== selectedId);
+                selectedId = null;
+                render();
+            }
         }
     });
 
-    // ACTUALIZAR ESTILOS DESDE LA BARRA
-    function updateStyle() {
-        const el = elements.find(e => e.id === selectedId);
-        if(!el) return;
-        el.color = document.getElementById('style-color').value;
-        el.size = document.getElementById('style-size').value;
-        render();
-    }
-
-    // RENDERIZAR TODO
     function render() {
-        // Guardar scroll o foco si fuera necesario, pero aquí limpiamos
         canvas.innerHTML = '';
-
-        // Fondo
-        if(background.type === 'video') {
-            const video = document.createElement('video');
-            video.src = background.url; video.autoplay = video.loop = video.muted = true;
-            video.className = 'bg-video';
-            canvas.appendChild(video);
-        } else if(background.type === 'image') {
-            canvas.style.backgroundImage = `url(${background.url})`;
+        
+        // Render Fondo
+        if(bgData.type === 'video') {
+            canvas.style.backgroundImage = 'none';
+            const vid = document.createElement('video');
+            vid.src = bgData.url; vid.autoplay = vid.loop = vid.muted = true;
+            vid.style = "position:absolute; width:100%; height:100%; object-fit:cover; z-index:0; pointer-events:none;";
+            canvas.appendChild(vid);
+        } else if(bgData.type === 'image') {
+            canvas.style.backgroundImage = `url(${bgData.url})`;
         }
 
         elements.forEach(el => {
             const div = document.createElement('div');
             div.className = `element ${el.type} ${el.id === selectedId ? 'selected' : ''}`;
-            div.style.left = el.x + 'px';
-            div.style.top = el.y + 'px';
-
-            if(el.type === 'panel') {
-                div.style.width = el.w + 'px';
-                div.style.height = el.h + 'px';
-            } else {
-                div.style.color = el.color;
-                div.style.fontSize = el.size + 'px';
-                div.contentEditable = (el.id === selectedId);
+            div.style = `left:${el.x}px; top:${el.y}px; width:${el.w}px; height:${el.h}px; color:${el.color}; font-size:${el.size}px; z-index:10;`;
+            
+            if(el.type === 'text') {
                 div.innerText = el.text;
-                
-                // Guardar texto al escribir
-                div.onblur = () => { el.text = div.innerText; exportCode(); };
+                div.ondblclick = (e) => {
+                    div.contentEditable = true;
+                    div.focus();
+                };
+                div.onblur = () => {
+                    div.contentEditable = false;
+                    el.text = div.innerText;
+                    exportCode();
+                };
             }
 
-            // Seleccionar y Drag
+            // DRAG (MOVIMIENTO)
             div.onmousedown = (e) => {
-                if(e.target.classList.contains('resizer')) return;
+                if(div.contentEditable === "true" || e.target.classList.contains('resizer')) return;
                 selectedId = el.id;
-                document.getElementById('style-color').value = el.color;
-                document.getElementById('style-size').value = el.size;
-                
+                document.querySelectorAll('.element').forEach(item => item.classList.remove('selected'));
+                div.classList.add('selected');
+
                 let startX = e.clientX - el.x;
                 let startY = e.clientY - el.y;
 
@@ -283,69 +207,53 @@
                     div.style.top = el.y + 'px';
                     exportCode();
                 };
-
-                document.onmouseup = () => {
-                    document.onmousemove = null;
-                    render(); // Re-render para actualizar estado de selección
-                };
+                document.onmouseup = () => { document.onmousemove = null; };
             };
 
-            // Resizer para Paneles
-            if(el.type === 'panel') {
-                const r = document.createElement('div');
-                r.className = 'resizer';
-                r.onmousedown = (e) => {
-                    e.stopPropagation();
-                    let startW = el.w;
-                    let startH = el.h;
-                    let startX = e.clientX;
-                    let startY = e.clientY;
+            // RESIZER (AGRANDAR/ACHICAR)
+            const r = document.createElement('div');
+            r.className = 'resizer';
+            r.onmousedown = (e) => {
+                e.stopPropagation();
+                let startW = el.w;
+                let startX = e.clientX;
+                let startSize = el.size;
 
-                    document.onmousemove = (e2) => {
-                        el.w = startW + (e2.clientX - startX);
-                        el.h = startH + (e2.clientY - startY);
-                        div.style.width = el.w + 'px';
-                        div.style.height = el.h + 'px';
-                        exportCode();
-                    };
-                    document.onmouseup = () => { document.onmousemove = null; };
+                document.onmousemove = (e2) => {
+                    let diff = e2.clientX - startX;
+                    el.w = startW + diff;
+                    el.h = (el.type === 'text') ? el.h : el.h + (diff * 0.5); // Los paneles crecen en alto también
+                    
+                    if(el.type === 'text') {
+                        el.size = Math.max(10, startSize + (diff * 0.4)); // Escala el texto
+                        div.style.fontSize = el.size + 'px';
+                    }
+                    
+                    div.style.width = el.w + 'px';
+                    div.style.height = el.h + 'px';
+                    exportCode();
                 };
-                div.appendChild(r);
-            }
+                document.onmouseup = () => { document.onmousemove = null; };
+            };
+            div.appendChild(r);
 
             canvas.appendChild(div);
         });
         exportCode();
     }
 
-    // EXPORTAR CÓDIGO REAL
     function exportCode() {
-        let html = "";
-        let css = "/* Estilos Generados */\nbody { margin: 0; min-height: 100vh; " + 
-                  (background.type === 'image' ? `background: url('${background.url}') center/cover;` : "background: #000;") + "}\n";
-
-        if(background.type === 'video') {
-            html += `<video src="${background.url}" autoplay loop muted style="position:fixed;width:100%;height:100%;object-fit:cover;z-index:-1;"></video>\n`;
-        }
+        let html = bgData.type === 'video' ? `<video src="${bgData.url}" autoplay loop muted></video>\n` : '';
+        let css = `body { background: ${bgData.type === 'image' ? `url('${bgData.url}')` : '#000'} center/cover; }\n`;
 
         elements.forEach((el, i) => {
-            html += `<div class="obj-${i}">${el.text}</div>\n`;
-            css += `.obj-${i} {\n  position: absolute;\n  left: ${el.x}px; top: ${el.y}px;\n`;
-            if(el.type === 'panel') {
-                css += `  width: ${el.w}px; height: ${el.h}px;\n  background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 15px; border: 1px solid rgba(255,255,255,0.2);\n`;
-            } else {
-                css += `  color: ${el.color}; font-size: ${el.size}px; font-weight: bold;\n`;
-            }
-            css += "}\n\n";
+            html += `<div class="item-${i}">${el.text}</div>\n`;
+            css += `.item-${i} { position: absolute; left: ${el.x}px; top: ${el.y}px; color: ${el.color}; font-size: ${el.size}px; }\n`;
         });
-
-        document.getElementById('html-code').innerText = html || "Esperando elementos...";
-        document.getElementById('css-code').innerText = css;
+        document.getElementById('code-display').innerText = html + "\n" + css;
     }
 
-    // Deseleccionar al tocar el fondo
     canvas.onclick = (e) => { if(e.target === canvas) { selectedId = null; render(); } };
-
     render();
 </script>
 
