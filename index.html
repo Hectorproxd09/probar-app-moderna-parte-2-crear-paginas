@@ -4,120 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ProEditor - Visual Canvas</title>
-<style>
-  /* ===== RESET & BASE ===== */
-  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; height:100vh; overflow:hidden; background:#1a1a2e; color:#e0e0e0; user-select:none; }
-  
-  /* ===== LAYOUT ===== */
-  .app { display:flex; height:100vh; }
-  
-  /* ===== TOP BAR ===== */
-  .topbar { position:fixed; top:0; left:0; right:0; height:48px; z-index:1000; display:flex; align-items:center; gap:8px; padding:0 16px;
-    background:rgba(20,20,40,0.85); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
-    border-bottom:1px solid rgba(255,255,255,0.08); }
-  .topbar .logo { font-weight:700; font-size:18px; background:linear-gradient(135deg,#6c5ce7,#00cec9); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-right:16px; }
-  .topbar button { padding:6px 14px; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; transition:.2s; background:rgba(255,255,255,0.06); color:#ccc; }
-  .topbar button:hover { background:rgba(255,255,255,0.14); color:#fff; }
-  .topbar button.primary { background:linear-gradient(135deg,#6c5ce7,#a29bfe); color:#fff; }
-  .topbar button.primary:hover { filter:brightness(1.1); }
-  .topbar .sep { width:1px; height:24px; background:rgba(255,255,255,0.1); margin:0 6px; }
-  
-  /* ===== CANVAS ===== */
-  .canvas-wrap { flex:1; position:relative; margin-top:48px; overflow:hidden; background:radial-gradient(ellipse at 30% 40%,#16213e,#0f0f23); }
-  .canvas-wrap.bg-video video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; }
-  .canvas-wrap.bg-image img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; }
-  .canvas { position:relative; width:100%; height:100%; z-index:1; }
-  
-  /* ===== ELEMENTOS DEL CANVAS ===== */
-  .ce { position:absolute; cursor:move; min-width:40px; min-height:28px; padding:12px 16px; border-radius:12px; transition:box-shadow .2s;
-    background:rgba(255,255,255,0.12); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-    border:1px solid rgba(255,255,255,0.18); box-shadow:0 8px 32px rgba(0,0,0,0.25); }
-  .ce:hover { box-shadow:0 8px 40px rgba(0,0,0,0.35); }
-  .ce.selected { outline:2px solid #6c5ce7; outline-offset:2px; z-index:100 !important; }
-  .ce .del-btn { position:absolute; top:-10px; right:-10px; width:22px; height:22px; border-radius:50%; border:none;
-    background:#e74c3c; color:#fff; font-size:12px; cursor:pointer; display:none; align-items:center; justify-content:center; z-index:20; box-shadow:0 2px 8px rgba(231,76,60,0.4); }
-  .ce.selected .del-btn { display:flex; }
-  .ce .del-btn:hover { transform:scale(1.15); }
-  
-  /* Resize handles */
-  .ce .rh { position:absolute; width:12px; height:12px; background:rgba(108,92,231,0.8); border:2px solid #fff; border-radius:50%;
-    box-shadow:0 2px 6px rgba(0,0,0,0.3); display:none; z-index:15; transition:.15s; }
-  .ce.selected .rh { display:block; }
-  .ce .rh:hover { transform:scale(1.3); background:#6c5ce7; }
-  .ce .rh-nw { top:-7px; left:-7px; cursor:nw-resize; }
-  .ce .rh-ne { top:-7px; right:-7px; cursor:ne-resize; }
-  .ce .rh-sw { bottom:-7px; left:-7px; cursor:sw-resize; }
-  .ce .rh-se { bottom:-7px; right:-7px; cursor:se-resize; }
-  .ce .rh-n { top:-7px; left:50%; margin-left:-6px; cursor:n-resize; }
-  .ce .rh-s { bottom:-7px; left:50%; margin-left:-6px; cursor:s-resize; }
-  .ce .rh-e { right:-7px; top:50%; margin-top:-6px; cursor:e-resize; }
-  .ce .rh-w { left:-7px; top:50%; margin-top:-6px; cursor:w-resize; }
-  
-  .ce.text-el { font-size:16px; color:#fff; line-height:1.5; word-break:break-word; }
-  .ce.text-el[contenteditable="true"]:focus { outline:none; }
-  .ce.panel-el { min-width:120px; min-height:100px; }
-  .ce.link-el { padding:10px 20px; text-align:center; cursor:pointer; }
-  .ce.link-el a { color:inherit; text-decoration:none; display:block; }
-  .ce.link-el:hover { filter:brightness(1.1); }
-  .ce.image-el { padding:0; overflow:hidden; min-width:60px; min-height:60px; }
-  .ce.image-el img { width:100%; height:100%; object-fit:cover; display:block; border-radius:11px; }
-  .ce.video-el { padding:0; overflow:hidden; min-width:120px; min-height:80px; }
-  .ce.video-el video { width:100%; height:100%; object-fit:cover; display:block; border-radius:11px; }
-  
-  /* ===== PANEL LATERAL ===== */
-  .sidepanel { position:fixed; top:48px; right:-380px; width:380px; bottom:0; z-index:500; transition:right .35s cubic-bezier(0.22,1,0.36,1);
-    background:rgba(15,15,35,0.92); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
-    border-left:1px solid rgba(255,255,255,0.08); overflow-y:auto; padding:20px; }
-  .sidepanel.open { right:0; }
-  .sidepanel::-webkit-scrollbar { width:4px; }
-  .sidepanel::-webkit-scrollbar-track { background:transparent; }
-  .sidepanel::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.15); border-radius:2px; }
-  .side-toggle { position:fixed; top:56px; right:16px; z-index:501; width:40px; height:40px; border-radius:12px; border:none;
-    background:rgba(255,255,255,0.08); backdrop-filter:blur(8px); color:#ccc; font-size:20px; cursor:pointer; transition:.2s; display:flex; align-items:center; justify-content:center; }
-  .side-toggle:hover { background:rgba(255,255,255,0.18); color:#fff; }
-  .side-toggle.open { right:396px; background:rgba(108,92,231,0.3); }
-  
-  .sidepanel h2 { font-size:16px; font-weight:600; margin-bottom:16px; color:rgba(255,255,255,0.9); }
-  .sidepanel h3 { font-size:13px; font-weight:500; margin:16px 0 8px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.5px; }
-  .sidepanel .sec { margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid rgba(255,255,255,0.06); }
-  .sidepanel .sec:last-child { border-bottom:none; }
-  
-  .sp-group { display:flex; flex-wrap:wrap; gap:6px; }
-  .sp-group button { flex:1; min-width:60px; padding:8px 10px; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:500;
-    background:rgba(255,255,255,0.06); color:#ccc; transition:.2s; text-align:center; }
-  .sp-group button:hover { background:rgba(255,255,255,0.14); color:#fff; }
-  .sp-group button.active { background:rgba(108,92,231,0.3); color:#a29bfe; }
-  .sp-group button.icon-btn { font-size:16px; }
-  
-  .sp-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
-  .sp-row label { font-size:12px; color:rgba(255,255,255,0.5); min-width:50px; }
-  .sp-row input[type="color"] { width:36px; height:36px; border:none; border-radius:8px; cursor:pointer; background:transparent; padding:0; }
-  .sp-row input[type="number"], .sp-row input[type="text"], .sp-row input[type="url"] { flex:1; padding:8px 10px; border:none; border-radius:8px;
-    background:rgba(255,255,255,0.06); color:#e0e0e0; font-size:13px; outline:none; transition:.2s; }
-  .sp-row input[type="number"]:focus, .sp-row input[type="text"]:focus, .sp-row input[type="url"]:focus { background:rgba(255,255,255,0.1); }
-  .sp-row input[type="range"] { flex:1; accent-color:#6c5ce7; }
-  .sp-row .val { font-size:12px; color:rgba(255,255,255,0.4); min-width:32px; text-align:right; }
-  
-  .sp-color-presets { display:flex; gap:4px; flex-wrap:wrap; }
-  .sp-color-presets .cp { width:28px; height:28px; border-radius:6px; border:1px solid rgba(255,255,255,0.1); cursor:pointer; transition:.2s; }
-  .sp-color-presets .cp:hover { transform:scale(1.15); }
-  
-  .align-grid { display:flex; gap:4px; }
-  .align-grid button { flex:1; padding:8px; border:none; border-radius:8px; cursor:pointer; font-size:14px;
-    background:rgba(255,255,255,0.06); color:#ccc; transition:.2s; }
-  .align-grid button:hover { background:rgba(255,255,255,0.14); color:#fff; }
-  .align-grid button.active { background:rgba(108,92,231,0.3); color:#a29bfe; }
-  
-  /* ===== TOAST ===== */
-  .toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); z-index:9999; padding:12px 28px; border-radius:12px;
-    font-size:14px; font-weight:500; background:rgba(15,15,35,0.9); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.1);
-    color:#e0e0e0; opacity:0; transition:opacity .35s, transform .35s; transform:translateX(-50%) translateY(20px); pointer-events:none; white-space:nowrap; }
-  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-  
-  /* ===== RESPONSIVE ===== */
-  @media(max-width:768px) { .sidepanel { width:320px; right:-320px; } .sidepanel.open { right:0; } .side-toggle.open { right:336px; } }
-</style>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
@@ -157,8 +44,14 @@
     <!-- Background -->
     <div class="sec">
       <h3>Fondo del Canvas</h3>
-      <div class="sp-row"><label>Color:</label><input type="color" id="bgColor" value="#1a1a2e" onchange="setCanvasBg('color',this.value)"></div>
-      <div class="sp-row"><label>URL Fondo:</label><input type="url" id="bgUrl" placeholder="URL de imagen o video..." onchange="setCanvasBg('url',this.value)"></div>
+      <div class="sp-row">
+        <label>Color:</label>
+        <input type="color" id="bgColor" value="#1a1a2e" onchange="setCanvasBg('color',this.value)">
+      </div>
+      <div class="sp-row">
+        <label>URL Fondo:</label>
+        <input type="url" id="bgUrl" placeholder="URL de imagen o video..." onchange="setCanvasBg('url',this.value)">
+      </div>
       <div class="sp-group">
         <button onclick="setCanvasBg('color','#1a1a2e')">🌌 Default</button>
         <button onclick="setCanvasBg('color','#0f0f23')">🌑 Oscuro</button>
@@ -182,33 +75,43 @@
     <!-- Selected Properties -->
     <div class="sec" id="propSection">
       <h3>Elemento Seleccionado</h3>
-      <div id="noSelection" style="font-size:13px;color:rgba(255,255,255,0.3);padding:20px 0;text-align:center;">Haz clic en un elemento del canvas</div>
+      <div id="noSelection" class="no-sel">Haz clic en un elemento del canvas</div>
       
       <div id="selProps" style="display:none;">
-        <!-- Type label -->
-        <div class="sp-row"><label>Tipo:</label><span id="selType" style="font-size:13px;color:#a29bfe;"></span></div>
+        <div class="sp-row"><label>Tipo:</label><span id="selType" class="sel-type"></span></div>
         
-        <!-- Posicion -->
         <div class="sp-row"><label>X:</label><input type="number" id="propX" onchange="updateProp('x',this.value)"></div>
         <div class="sp-row"><label>Y:</label><input type="number" id="propY" onchange="updateProp('y',this.value)"></div>
         <div class="sp-row"><label>Ancho:</label><input type="number" id="propW" onchange="updateProp('w',this.value)"></div>
         <div class="sp-row"><label>Alto:</label><input type="number" id="propH" onchange="updateProp('h',this.value)"></div>
         
-        <!-- Rotation -->
-        <div class="sp-row"><label>Rotación:</label><input type="range" id="propRot" min="0" max="360" value="0" oninput="updateProp('rot',this.value)"><span class="val" id="rotVal">0°</span></div>
+        <div class="sp-row">
+          <label>Rotación:</label>
+          <input type="range" id="propRot" min="0" max="360" value="0" oninput="updateProp('rot',this.value)">
+          <span class="val" id="rotVal">0°</span>
+        </div>
         
-        <!-- Color / Background -->
         <div class="sp-row"><label>Color fondo:</label><input type="color" id="propBgColor" onchange="updateProp('bg',this.value)"></div>
         <div class="sp-row"><label>Color texto:</label><input type="color" id="propTextColor" onchange="updateProp('textColor',this.value)"></div>
-        <div class="sp-row"><label>Opacidad:</label><input type="range" id="propOpacity" min="0" max="100" value="100" oninput="updateProp('opacity',this.value)"><span class="val" id="opacityVal">100%</span></div>
         
-        <!-- Border radius -->
-        <div class="sp-row"><label>Borde redondo:</label><input type="range" id="propRadius" min="0" max="50" value="12" oninput="updateProp('radius',this.value)"><span class="val" id="radiusVal">12px</span></div>
+        <div class="sp-row">
+          <label>Opacidad:</label>
+          <input type="range" id="propOpacity" min="0" max="100" value="100" oninput="updateProp('opacity',this.value)">
+          <span class="val" id="opacityVal">100%</span>
+        </div>
         
-        <!-- Glass effect -->
-        <div class="sp-row"><label>Vidrio (blur):</label><input type="range" id="propBlur" min="0" max="40" value="12" oninput="updateProp('blur',this.value)"><span class="val" id="blurVal">12px</span></div>
+        <div class="sp-row">
+          <label>Borde redondo:</label>
+          <input type="range" id="propRadius" min="0" max="50" value="12" oninput="updateProp('radius',this.value)">
+          <span class="val" id="radiusVal">12px</span>
+        </div>
         
-        <!-- Text formatting -->
+        <div class="sp-row">
+          <label>Vidrio (blur):</label>
+          <input type="range" id="propBlur" min="0" max="40" value="12" oninput="updateProp('blur',this.value)">
+          <span class="val" id="blurVal">12px</span>
+        </div>
+        
         <div id="textProps" style="display:none;">
           <h3>Formato de Texto</h3>
           <div class="sp-group">
@@ -217,7 +120,11 @@
             <button class="icon-btn" onclick="execFormat('underline')" title="Subrayado"><u>U</u></button>
             <button class="icon-btn" onclick="execFormat('strikeThrough')" title="Tachado"><s>S</s></button>
           </div>
-          <div class="sp-row"><label>Tamaño:</label><input type="number" id="propFontSize" value="16" min="8" max="200" onchange="updateProp('fontSize',this.value)"><span style="font-size:12px;color:rgba(255,255,255,0.3);">px</span></div>
+          <div class="sp-row">
+            <label>Tamaño:</label>
+            <input type="number" id="propFontSize" value="16" min="8" max="200" onchange="updateProp('fontSize',this.value)">
+            <span class="val">px</span>
+          </div>
           <div class="sp-group" style="margin-top:6px;">
             <button onclick="execFormat('justifyLeft')">⬅</button>
             <button onclick="execFormat('justifyCenter')">⬡</button>
@@ -225,19 +132,22 @@
           </div>
         </div>
         
-        <!-- Link specific -->
         <div id="linkProps" style="display:none;">
           <h3>URL del Enlace</h3>
-          <div class="sp-row"><label>URL:</label><input type="url" id="propLinkUrl" placeholder="https://..." onchange="updateProp('linkUrl',this.value)"></div>
+          <div class="sp-row">
+            <label>URL:</label>
+            <input type="url" id="propLinkUrl" placeholder="https://..." onchange="updateProp('linkUrl',this.value)">
+          </div>
         </div>
         
-        <!-- Image/Video URL -->
         <div id="mediaProps" style="display:none;">
           <h3>URL del Medio</h3>
-          <div class="sp-row"><label>URL:</label><input type="url" id="propMediaUrl" placeholder="https://..." onchange="updateProp('mediaUrl',this.value)"></div>
+          <div class="sp-row">
+            <label>URL:</label>
+            <input type="url" id="propMediaUrl" placeholder="https://..." onchange="updateProp('mediaUrl',this.value)">
+          </div>
         </div>
         
-        <!-- Color presets -->
         <h3>Colores Rápidos</h3>
         <div class="sp-color-presets">
           <div class="cp" style="background:#6c5ce7" onclick="quickColor('bg','#6c5ce7')"></div>
@@ -252,10 +162,9 @@
           <div class="cp" style="background:rgba(255,255,255,0.12)" onclick="quickColor('bg','rgba(255,255,255,0.12)')"></div>
         </div>
         
-        <!-- Z-index -->
         <div class="sp-row" style="margin-top:8px;">
-          <button onclick="moveZIndex(-1)" style="flex:1;padding:6px;border:none;border-radius:8px;cursor:pointer;background:rgba(255,255,255,0.06);color:#ccc;">⬇ Atrás</button>
-          <button onclick="moveZIndex(1)" style="flex:1;padding:6px;border:none;border-radius:8px;cursor:pointer;background:rgba(255,255,255,0.06);color:#ccc;">⬆ Adelante</button>
+          <button onclick="moveZIndex(-1)" class="z-btn">⬇ Atrás</button>
+          <button onclick="moveZIndex(1)" class="z-btn">⬆ Adelante</button>
         </div>
       </div>
     </div>
@@ -277,1016 +186,23 @@
       </div>
     </div>
 
-    <!-- Snap to grid toggle -->
+    <!-- Snap to grid -->
     <div class="sec">
       <div class="sp-row">
         <label>Snap to grid:</label>
-        <input type="checkbox" id="snapToggle" checked onchange="updateSnap()" style="accent-color:#6c5ce7;width:18px;height:18px;">
+        <input type="checkbox" id="snapToggle" checked onchange="updateSnap()" class="checkbox">
       </div>
       <div class="sp-row">
         <label>Grid size:</label>
-        <input type="number" id="gridSize" value="20" min="5" max="100" onchange="updateSnap()" style="width:60px;">
-        <span style="font-size:12px;color:rgba(255,255,255,0.3);">px</span>
+        <input type="number" id="gridSize" value="20" min="5" max="100" onchange="updateSnap()" class="num-sm">
+        <span class="val">px</span>
       </div>
     </div>
   </div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<script>
-// ============================================================
-// STATE
-// ============================================================
-let selectedEl = null;
-let panelOpen = false;
-let gridVisible = false;
-let zCounter = 10;
-let elementIdCounter = 0;
-let isDragging = false;
-let isResizing = false;
-let dragData = null;
-let resizeData = null;
-
-// ============================================================
-// TOAST
-// ============================================================
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(t._timeout);
-  t._timeout = setTimeout(() => t.classList.remove('show'), 2200);
-}
-
-// ============================================================
-// PANEL
-// ============================================================
-function togglePanel() {
-  panelOpen = !panelOpen;
-  document.getElementById('sidepanel').classList.toggle('open', panelOpen);
-  document.getElementById('sideToggle').classList.toggle('open', panelOpen);
-}
-
-// ============================================================
-// ADD ELEMENTS
-// ============================================================
-function addElement(type) {
-  const canvas = document.getElementById('canvas');
-  const el = document.createElement('div');
-  const id = 'el-' + (++elementIdCounter);
-  el.className = 'ce';
-  el.dataset.type = type;
-  el.dataset.id = id;
-  el.style.zIndex = ++zCounter;
-  
-  // Posicion aleatoria
-  const cw = canvas.offsetWidth || 900;
-  const ch = canvas.offsetHeight || 600;
-  const left = 60 + Math.random() * (cw - 300);
-  const top = 40 + Math.random() * (ch - 200);
-  
-  el.style.left = left + 'px';
-  el.style.top = top + 'px';
-  
-  // Resize handles
-  const dirs = ['nw','n','ne','e','se','s','sw','w'];
-  dirs.forEach(d => {
-    const h = document.createElement('div');
-    h.className = 'rh rh-' + d;
-    el.appendChild(h);
-  });
-  
-  // Delete button
-  const del = document.createElement('button');
-  del.className = 'del-btn';
-  del.innerHTML = '✕';
-  del.onclick = (e) => { e.stopPropagation(); deleteElement(el); };
-  el.appendChild(del);
-  
-  // Type-specific
-  if (type === 'text') {
-    el.classList.add('text-el');
-    el.contentEditable = 'true';
-    el.textContent = 'Texto aquí...';
-    el.style.fontSize = '16px';
-    el.style.color = '#ffffff';
-    el.style.background = 'rgba(255,255,255,0.08)';
-  } else if (type === 'panel') {
-    el.classList.add('panel-el');
-    el.style.background = 'rgba(255,255,255,0.12)';
-    el.style.width = '200px';
-    el.style.height = '160px';
-    el.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,0.5);font-size:13px;padding:20px;">Panel de vidrio</div>';
-  } else if (type === 'link') {
-    el.classList.add('link-el');
-    el.style.background = 'rgba(108,92,231,0.25)';
-    const a = document.createElement('a');
-    a.href = '#';
-    a.textContent = '🔗 Enlace';
-    a.target = '_blank';
-    a.style.color = '#a29bfe';
-    a.onclick = (e) => { e.stopPropagation(); };
-    el.appendChild(a);
-    el.dataset.linkUrl = 'https://example.com';
-  } else if (type === 'image') {
-    el.classList.add('image-el');
-    el.style.width = '160px';
-    el.style.height = '120px';
-    const img = document.createElement('img');
-    img.src = 'https://picsum.photos/300/200?random=' + id;
-    img.alt = 'Imagen';
-    img.draggable = false;
-    el.appendChild(img);
-    el.dataset.mediaUrl = img.src;
-  } else if (type === 'video') {
-    el.classList.add('video-el');
-    el.style.width = '240px';
-    el.style.height = '160px';
-    const vid = document.createElement('video');
-    vid.src = 'https://www.w3schools.com/html/mov_bbb.mp4';
-    vid.loop = true;
-    vid.muted = true;
-    vid.playsInline = true;
-    vid.style.width = '100%';
-    vid.style.height = '100%';
-    vid.style.objectFit = 'cover';
-    el.appendChild(vid);
-    el.dataset.mediaUrl = vid.src;
-  }
-  
-  el.addEventListener('mousedown', onElementMouseDown);
-  el.addEventListener('click', () => selectElement(el));
-  
-  canvas.appendChild(el);
-  selectElement(el);
-  toast(type === 'link' ? '🔗 Enlace creado' : `✨ ${type.charAt(0).toUpperCase()+type.slice(1)} creado`);
-  
-  if (!panelOpen) togglePanel();
-  return el;
-}
-
-// ============================================================
-// SELECTION
-// ============================================================
-function selectElement(el) {
-  if (selectedEl === el) return;
-  if (selectedEl) {
-    selectedEl.classList.remove('selected');
-    if (selectedEl.dataset.type === 'text' && selectedEl.contentEditable === 'true') {
-      selectedEl.contentEditable = 'false';
-    }
-  }
-  selectedEl = el;
-  if (el) {
-    el.classList.add('selected');
-    el.style.zIndex = ++zCounter;
-    refreshProps();
-  } else {
-    document.getElementById('noSelection').style.display = 'block';
-    document.getElementById('selProps').style.display = 'none';
-  }
-}
-
-function deselectAll() {
-  if (selectedEl) {
-    selectedEl.classList.remove('selected');
-    if (selectedEl.dataset.type === 'text' && selectedEl.contentEditable === 'true') {
-      selectedEl.contentEditable = 'false';
-    }
-  }
-  selectedEl = null;
-  document.getElementById('noSelection').style.display = 'block';
-  document.getElementById('selProps').style.display = 'none';
-}
-
-// Click en canvas vacio
-document.getElementById('canvas').addEventListener('mousedown', (e) => {
-  if (e.target === e.currentTarget) deselectAll();
-});
-
-// ============================================================
-// PROPS
-// ============================================================
-function refreshProps() {
-  const el = selectedEl;
-  if (!el) { deselectAll(); return; }
-  
-  document.getElementById('noSelection').style.display = 'none';
-  document.getElementById('selProps').style.display = 'block';
-  
-  document.getElementById('selType').textContent = el.dataset.type;
-  document.getElementById('propX').value = Math.round(parseFloat(el.style.left) || 0);
-  document.getElementById('propY').value = Math.round(parseFloat(el.style.top) || 0);
-  document.getElementById('propW').value = Math.round(el.offsetWidth);
-  document.getElementById('propH').value = Math.round(el.offsetHeight);
-  
-  const rot = parseFloat(el.dataset.rotation) || 0;
-  document.getElementById('propRot').value = rot;
-  document.getElementById('rotVal').textContent = rot + '°';
-  
-  // Color bg
-  const bg = el.style.background || getComputedStyle(el).background;
-  // Extract hex/rgba
-  const bgColor = el.dataset.bgColor || 'rgba(255,255,255,0.12)';
-  document.getElementById('propBgColor').value = colorToHex(bgColor);
-  
-  const tc = el.style.color || '#ffffff';
-  document.getElementById('propTextColor').value = colorToHex(tc);
-  
-  const op = parseFloat(el.style.opacity) || 1;
-  document.getElementById('propOpacity').value = op * 100;
-  document.getElementById('opacityVal').textContent = Math.round(op * 100) + '%';
-  
-  const br = parseFloat(el.style.borderRadius) || 12;
-  document.getElementById('propRadius').value = br;
-  document.getElementById('radiusVal').textContent = Math.round(br) + 'px';
-  
-  // Blur
-  const bf = el.dataset.blur || '12';
-  document.getElementById('propBlur').value = bf;
-  document.getElementById('blurVal').textContent = bf + 'px';
-  
-  // Text
-  const isText = el.dataset.type === 'text';
-  document.getElementById('textProps').style.display = isText ? 'block' : 'none';
-  if (isText) {
-    const fs = parseFloat(el.style.fontSize) || 16;
-    document.getElementById('propFontSize').value = fs;
-  }
-  
-  // Link
-  document.getElementById('linkProps').style.display = el.dataset.type === 'link' ? 'block' : 'none';
-  if (el.dataset.type === 'link') {
-    document.getElementById('propLinkUrl').value = el.dataset.linkUrl || '';
-  }
-  
-  // Media
-  document.getElementById('mediaProps').style.display = (el.dataset.type === 'image' || el.dataset.type === 'video') ? 'block' : 'none';
-  if (el.dataset.type === 'image' || el.dataset.type === 'video') {
-    document.getElementById('propMediaUrl').value = el.dataset.mediaUrl || '';
-  }
-}
-
-function updateProp(prop, val) {
-  const el = selectedEl;
-  if (!el) return;
-  
-  switch(prop) {
-    case 'x': el.style.left = val + 'px'; break;
-    case 'y': el.style.top = val + 'px'; break;
-    case 'w': el.style.width = val + 'px'; break;
-    case 'h': el.style.height = val + 'px'; break;
-    case 'rot':
-      el.dataset.rotation = val;
-      el.style.transform = `rotate(${val}deg)`;
-      document.getElementById('rotVal').textContent = val + '°';
-      break;
-    case 'bg':
-      el.dataset.bgColor = val;
-      el.style.background = val;
-      break;
-    case 'textColor':
-      el.style.color = val;
-      if (el.dataset.type === 'link') {
-        const a = el.querySelector('a');
-        if (a) a.style.color = val;
-      }
-      break;
-    case 'opacity':
-      el.style.opacity = val / 100;
-      document.getElementById('opacityVal').textContent = Math.round(val) + '%';
-      break;
-    case 'radius':
-      el.style.borderRadius = val + 'px';
-      document.getElementById('radiusVal').textContent = Math.round(val) + 'px';
-      break;
-    case 'blur':
-      el.dataset.blur = val;
-      const alpha = parseFloat(el.dataset.bgAlpha) || 0.12;
-      const bgC = el.dataset.bgColor || 'rgba(255,255,255,0.12)';
-      el.style.backdropFilter = `blur(${val}px)`;
-      el.style.WebkitBackdropFilter = `blur(${val}px)`;
-      document.getElementById('blurVal').textContent = val + 'px';
-      break;
-    case 'fontSize':
-      el.style.fontSize = val + 'px';
-      break;
-    case 'linkUrl':
-      el.dataset.linkUrl = val;
-      const a = el.querySelector('a');
-      if (a) { a.href = val; a.textContent = '🔗 ' + (val.replace(/^https?:\/\//,'').substring(0,25) || 'Enlace'); }
-      break;
-    case 'mediaUrl':
-      el.dataset.mediaUrl = val;
-      if (el.dataset.type === 'image') {
-        const img = el.querySelector('img');
-        if (img) img.src = val;
-      } else if (el.dataset.type === 'video') {
-        const vid = el.querySelector('video');
-        if (vid) vid.src = val;
-      }
-      break;
-  }
-}
-
-function colorToHex(c) {
-  if (!c || c === 'transparent' || c === 'rgba(0,0,0,0)') return '#ffffff';
-  const ctx = document.createElement('canvas').getContext('2d');
-  ctx.fillStyle = c;
-  return ctx.fillStyle;
-}
-
-function quickColor(target, color) {
-  updateProp(target === 'bg' ? 'bg' : 'textColor', color);
-}
-
-// ============================================================
-// DRAG & RESIZE (Vanilla JS)
-// ============================================================
-function onElementMouseDown(e) {
-  const el = e.currentTarget;
-  if (e.target.classList.contains('rh')) {
-    startResize(e, el);
-    return;
-  }
-  if (e.target.classList.contains('del-btn')) return;
-  if (e.target.tagName === 'A' || e.target.tagName === 'IMG' || e.target.tagName === 'VIDEO') return;
-  
-  if (el.dataset.type === 'text') {
-    // Double click to edit
-  }
-  
-  startDrag(e, el);
-}
-
-function startDrag(e, el) {
-  if (e.button !== 0) return;
-  isDragging = true;
-  const rect = el.getBoundingClientRect();
-  const parentRect = el.parentElement.getBoundingClientRect();
-  
-  dragData = {
-    el,
-    startX: e.clientX,
-    startY: e.clientY,
-    elLeft: parseFloat(el.style.left) || (rect.left - parentRect.left),
-    elTop: parseFloat(el.style.top) || (rect.top - parentRect.top),
-  };
-  
-  document.addEventListener('mousemove', onDrag);
-  document.addEventListener('mouseup', stopDrag);
-  e.preventDefault();
-}
-
-function onDrag(e) {
-  if (!isDragging || !dragData) return;
-  const { el, startX, startY, elLeft, elTop } = dragData;
-  let dx = e.clientX - startX;
-  let dy = e.clientY - startY;
-  
-  const snap = document.getElementById('snapToggle').checked;
-  const gridSize = parseInt(document.getElementById('gridSize').value) || 20;
-  
-  let newX = elLeft + dx;
-  let newY = elTop + dy;
-  
-  if (snap) {
-    newX = Math.round(newX / gridSize) * gridSize;
-    newY = Math.round(newY / gridSize) * gridSize;
-  }
-  
-  el.style.left = Math.max(0, newX) + 'px';
-  el.style.top = Math.max(0, newY) + 'px';
-}
-
-function stopDrag() {
-  isDragging = false;
-  dragData = null;
-  document.removeEventListener('mousemove', onDrag);
-  document.removeEventListener('mouseup', stopDrag);
-  if (selectedEl) refreshProps();
-}
-
-// RESIZE
-function startResize(e, el) {
-  e.stopPropagation();
-  isResizing = true;
-  const handle = e.target;
-  const rect = el.getBoundingClientRect();
-  const parentRect = el.parentElement.getBoundingClientRect();
-  
-  resizeData = {
-    el, handle,
-    startX: e.clientX,
-    startY: e.clientY,
-    elLeft: parseFloat(el.style.left) || (rect.left - parentRect.left),
-    elTop: parseFloat(el.style.top) || (rect.top - parentRect.top),
-    elW: el.offsetWidth,
-    elH: el.offsetHeight,
-    dir: Array.from(handle.classList).find(c => c.startsWith('rh-')).replace('rh-','')
-  };
-  
-  document.addEventListener('mousemove', onResize);
-  document.addEventListener('mouseup', stopResize);
-  e.preventDefault();
-}
-
-function onResize(e) {
-  if (!isResizing || !resizeData) return;
-  const { el, handle, startX, startY, elLeft, elTop, elW, elH, dir } = resizeData;
-  const dx = e.clientX - startX;
-  const dy = e.clientY - startY;
-  
-  let newW = elW, newH = elH, newX = elLeft, newY = elTop;
-  
-  const snap = document.getElementById('snapToggle').checked;
-  const gridSize = parseInt(document.getElementById('gridSize').value) || 20;
-  
-  const snapVal = (v) => snap ? Math.round(v / gridSize) * gridSize : v;
-  
-  if (dir.includes('e')) { newW = Math.max(40, elW + dx); }
-  if (dir.includes('w')) { newW = Math.max(40, elW - dx); newX = elLeft + (elW - newW); }
-  if (dir.includes('s')) { newH = Math.max(28, elH + dy); }
-  if (dir.includes('n')) { newH = Math.max(28, elH - dy); newY = elTop + (elH - newH); }
-  
-  el.style.left = snapVal(newX) + 'px';
-  el.style.top = snapVal(newY) + 'px';
-  el.style.width = snapVal(newW) + 'px';
-  el.style.height = snapVal(newH) + 'px';
-}
-
-function stopResize() {
-  isResizing = false;
-  resizeData = null;
-  document.removeEventListener('mousemove', onResize);
-  document.removeEventListener('mouseup', stopResize);
-  if (selectedEl) refreshProps();
-}
-
-// ============================================================
-// DELETE / DUPLICATE
-// ============================================================
-function deleteElement(el) {
-  if (selectedEl === el) deselectAll();
-  el.remove();
-  toast('🗑 Eliminado');
-}
-
-function deleteSelected() {
-  if (!selectedEl) { toast('Selecciona un elemento primero'); return; }
-  const el = selectedEl;
-  deselectAll();
-  el.remove();
-  toast('🗑 Eliminado');
-}
-
-function duplicateSelected() {
-  if (!selectedEl) { toast('Selecciona un elemento primero'); return; }
-  const orig = selectedEl;
-  const type = orig.dataset.type;
-  const el = addElement(type);
-  // Copy styles
-  el.style.left = (parseFloat(orig.style.left) + 30) + 'px';
-  el.style.top = (parseFloat(orig.style.top) + 30) + 'px';
-  el.style.width = orig.style.width;
-  el.style.height = orig.style.height;
-  el.style.background = orig.style.background;
-  el.style.color = orig.style.color;
-  el.style.fontSize = orig.style.fontSize;
-  el.style.transform = orig.style.transform;
-  el.style.opacity = orig.style.opacity;
-  el.style.borderRadius = orig.style.borderRadius;
-  el.style.backdropFilter = orig.style.backdropFilter;
-  el.dataset.blur = orig.dataset.blur;
-  el.dataset.bgColor = orig.dataset.bgColor;
-  el.dataset.rotation = orig.dataset.rotation;
-  
-  if (type === 'text') el.textContent = orig.textContent;
-  if (type === 'link') {
-    const a = el.querySelector('a');
-    const oa = orig.querySelector('a');
-    if (a && oa) { a.href = oa.href; a.textContent = oa.textContent; a.style.color = oa.style.color; }
-    el.dataset.linkUrl = orig.dataset.linkUrl;
-  }
-  if (type === 'image' || type === 'video') {
-    el.dataset.mediaUrl = orig.dataset.mediaUrl;
-    if (type === 'image') { const img = el.querySelector('img'); if(img) img.src = orig.dataset.mediaUrl; }
-    if (type === 'video') { const vid = el.querySelector('video'); if(vid) vid.src = orig.dataset.mediaUrl; }
-  }
-  
-  selectElement(el);
-  toast('📋 Duplicado');
-}
-
-// ============================================================
-// Z-INDEX
-// ============================================================
-function moveZIndex(dir) {
-  if (!selectedEl) return;
-  const cur = parseInt(selectedEl.style.zIndex) || 1;
-  const newZ = dir > 0 ? Math.max(zCounter + 1, cur + 1) : Math.max(1, cur - 1);
-  selectedEl.style.zIndex = newZ;
-  if (dir > 0) zCounter = Math.max(zCounter, newZ);
-  toast(dir > 0 ? '⬆ Al frente' : '⬇ Al fondo');
-}
-
-// ============================================================
-// ALIGNMENT
-// ============================================================
-function alignElements(align) {
-  const els = document.querySelectorAll('.ce.selected');
-  let target = selectedEl;
-  // If nothing selected, try all
-  const allSelected = document.querySelectorAll('.ce.selected');
-  // Get all elements or just selected
-  const elements = Array.from(document.querySelectorAll('.ce'));
-  if (elements.length === 0) return;
-  
-  const parent = document.getElementById('canvas');
-  const pRect = parent.getBoundingClientRect();
-  
-  // Use all elements if multiple selected, else just selected
-  const targets = allSelected.length > 0 ? Array.from(allSelected) : [selectedEl].filter(Boolean);
-  if (targets.length === 0) { toast('Selecciona al menos un elemento'); return; }
-  
-  const rects = targets.map(el => el.getBoundingClientRect());
-  
-  targets.forEach((el, i) => {
-    const r = rects[i];
-    const elLeft = parseFloat(el.style.left) || 0;
-    const elTop = parseFloat(el.style.top) || 0;
-    const elW = el.offsetWidth;
-    const elH = el.offsetHeight;
-    
-    switch(align) {
-      case 'left':
-        el.style.left = '20px';
-        break;
-      case 'centerH':
-        el.style.left = ((parent.offsetWidth - elW) / 2) + 'px';
-        break;
-      case 'right':
-        el.style.left = (parent.offsetWidth - elW - 20) + 'px';
-        break;
-      case 'top':
-        el.style.top = '20px';
-        break;
-      case 'centerV':
-        el.style.top = ((parent.offsetHeight - elH) / 2) + 'px';
-        break;
-      case 'bottom':
-        el.style.top = (parent.offsetHeight - elH - 20) + 'px';
-        break;
-    }
-  });
-  
-  if (selectedEl) refreshProps();
-  toast('📐 Alineado');
-}
-
-function distributeElements(dir) {
-  const els = Array.from(document.querySelectorAll('.ce'));
-  if (els.length < 2) { toast('Se necesitan al menos 2 elementos'); return; }
-  
-  if (dir === 'h') {
-    const sorted = els.sort((a,b) => parseFloat(a.style.left) - parseFloat(b.style.left));
-    const first = parseFloat(sorted[0].style.left) || 0;
-    const last = parseFloat(sorted[sorted.length-1].style.left) || 0;
-    const last = parseFloat(sorted[sorted.length-1].style.left) || 0;
-    const gap = (last - first) / (sorted.length - 1);
-    sorted.forEach((el, i) => {
-      el.style.left = (first + gap * i) + 'px';
-    });
-  } else {
-    const sorted = els.sort((a,b) => parseFloat(a.style.top) - parseFloat(b.style.top));
-    const first = parseFloat(sorted[0].style.top) || 0;
-    const last = parseFloat(sorted[sorted.length-1].style.top) || 0;
-    const gap = (last - first) / (sorted.length - 1);
-    sorted.forEach((el, i) => {
-      el.style.top = (first + gap * i) + 'px';
-    });
-  }
-  if (selectedEl) refreshProps();
-  toast('📏 Distribuido');
-}
-
-// ============================================================
-// TEXT FORMATTING
-// ============================================================
-function execFormat(cmd) {
-  if (!selectedEl || selectedEl.dataset.type !== 'text') { toast('Selecciona un elemento de texto'); return; }
-  // Make editable temporarily
-  selectedEl.contentEditable = 'true';
-  selectedEl.focus();
-  
-  // Select all text inside
-  const range = document.createRange();
-  range.selectNodeContents(selectedEl);
-  const sel = window.getSelection();
-  sel.removeAllRanges();
-  sel.addRange(range);
-  
-  document.execCommand(cmd, false, null);
-  
-  // Restore
-  sel.removeAllRanges();
-  // Keep editable for further edits
-  toast('✏️ Formato aplicado');
-}
-
-// ============================================================
-// BACKGROUND
-// ============================================================
-function setCanvasBg(type, value) {
-  const wrap = document.getElementById('canvasWrap');
-  // Remove old bg elements
-  wrap.querySelectorAll('.bg-el').forEach(el => el.remove());
-  
-  if (type === 'color') {
-    wrap.style.background = value;
-    document.getElementById('bgColor').value = colorToHex(value);
-    document.getElementById('bgUrl').value = '';
-  } else if (type === 'url' && value) {
-    // Detect if video or image
-    const isVideo = /\.(mp4|webm|ogg|mov)(\?|$)/i.test(value) || value.includes('youtube.com') || value.includes('youtu.be') || value.includes('vimeo.com');
-    
-    if (isVideo) {
-      const vid = document.createElement('video');
-      vid.className = 'bg-el';
-      vid.src = value;
-      vid.autoplay = true;
-      vid.loop = true;
-      vid.muted = true;
-      vid.playsInline = true;
-      vid.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;';
-      wrap.prepend(vid);
-      vid.play().catch(() => {});
-      wrap.style.background = 'transparent';
-    } else {
-      const img = document.createElement('img');
-      img.className = 'bg-el';
-      img.src = value;
-      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;';
-      wrap.prepend(img);
-      wrap.style.background = 'transparent';
-    }
-    document.getElementById('bgUrl').value = value;
-  }
-}
-
-function clearBg() {
-  const wrap = document.getElementById('canvasWrap');
-  wrap.querySelectorAll('.bg-el').forEach(el => el.remove());
-  wrap.style.background = '#1a1a2e';
-  document.getElementById('bgColor').value = '#1a1a2e';
-  document.getElementById('bgUrl').value = '';
-  toast('🧹 Fondo limpiado');
-}
-
-// ============================================================
-// GRID TOGGLE
-// ============================================================
-function toggleGrid() {
-  gridVisible = !gridVisible;
-  const canvas = document.getElementById('canvas');
-  if (gridVisible) {
-    canvas.style.backgroundImage = `
-      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
-    `;
-    canvas.style.backgroundSize = '20px 20px';
-    document.getElementById('gridBtn').style.background = 'rgba(108,92,231,0.3)';
-    document.getElementById('gridBtn').style.color = '#a29bfe';
-  } else {
-    canvas.style.backgroundImage = 'none';
-    document.getElementById('gridBtn').style.background = '';
-    document.getElementById('gridBtn').style.color = '';
-  }
-  toast(gridVisible ? '⊞ Grid activado' : '⊟ Grid desactivado');
-}
-
-function updateSnap() {
-  // Just update grid size display
-  const size = document.getElementById('gridSize').value;
-  if (gridVisible) {
-    const canvas = document.getElementById('canvas');
-    canvas.style.backgroundSize = size + 'px ' + size + 'px';
-  }
-}
-
-// ============================================================
-// PREVIEW MODE
-// ============================================================
-function previewMode() {
-  const wrap = document.getElementById('canvasWrap');
-  const els = wrap.querySelectorAll('.ce');
-  const wasSelected = selectedEl;
-  
-  if (wrap.classList.contains('preview')) {
-    // Exit preview
-    wrap.classList.remove('preview');
-    els.forEach(el => {
-      el.querySelectorAll('.rh').forEach(h => h.style.display = '');
-      const del = el.querySelector('.del-btn');
-      if (del) del.style.display = '';
-      if (el.contentEditable === 'true') el.contentEditable = 'false';
-      el.style.cursor = 'move';
-      el.classList.remove('selected');
-    });
-    if (wasSelected) selectElement(wasSelected);
-    toast('👁 Vista previa desactivada');
-  } else {
-    // Enter preview
-    deselectAll();
-    wrap.classList.add('preview');
-    els.forEach(el => {
-      el.querySelectorAll('.rh').forEach(h => h.style.display = 'none');
-      const del = el.querySelector('.del-btn');
-      if (del) del.style.display = 'none';
-      if (el.contentEditable === 'true') el.contentEditable = 'false';
-      el.style.cursor = 'default';
-      el.classList.remove('selected');
-      
-      // Allow links to work in preview
-      if (el.dataset.type === 'link') {
-        const a = el.querySelector('a');
-        if (a) a.onclick = (e) => {
-          e.stopPropagation();
-          if (el.dataset.linkUrl && el.dataset.linkUrl !== '#') {
-            window.open(el.dataset.linkUrl, '_blank');
-          }
-        };
-      }
-    });
-    toast('👁 Vista previa activada');
-  }
-}
-
-// ============================================================
-// EXPORT / IMPORT
-// ============================================================
-function exportJSON() {
-  const canvas = document.getElementById('canvas');
-  const els = canvas.querySelectorAll('.ce');
-  const data = [];
-  
-  els.forEach(el => {
-    const obj = {
-      id: el.dataset.id,
-      type: el.dataset.type,
-      left: el.style.left,
-      top: el.style.top,
-      width: el.style.width,
-      height: el.style.height,
-      zIndex: el.style.zIndex,
-      rotation: el.dataset.rotation || '0',
-      bgColor: el.dataset.bgColor || '',
-      blur: el.dataset.blur || '12',
-      opacity: el.style.opacity || '1',
-      borderRadius: el.style.borderRadius || '12px',
-      color: el.style.color || '',
-      fontSize: el.style.fontSize || '',
-      linkUrl: el.dataset.linkUrl || '',
-      mediaUrl: el.dataset.mediaUrl || '',
-      content: el.innerHTML || ''
-    };
-    data.push(obj);
-  });
-  
-  const json = JSON.stringify({ elements: data, bgColor: document.getElementById('bgColor').value, bgUrl: document.getElementById('bgUrl').value }, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'proeditor-export.json';
-  a.click();
-  URL.revokeObjectURL(url);
-  toast('📥 Proyecto exportado');
-}
-
-function importJSON(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const data = JSON.parse(e.target.result);
-      const canvas = document.getElementById('canvas');
-      
-      // Clear canvas
-      canvas.innerHTML = '';
-      deselectAll();
-      
-      // Restore bg
-      if (data.bgColor) {
-        document.getElementById('bgColor').value = data.bgColor;
-        setCanvasBg('color', data.bgColor);
-      }
-      if (data.bgUrl) {
-        document.getElementById('bgUrl').value = data.bgUrl;
-        setCanvasBg('url', data.bgUrl);
-      }
-      
-      // Restore elements
-      data.elements.forEach(obj => {
-        const el = document.createElement('div');
-        el.className = 'ce';
-        el.dataset.type = obj.type;
-        el.dataset.id = obj.id;
-        el.style.left = obj.left;
-        el.style.top = obj.top;
-        el.style.width = obj.width;
-        el.style.height = obj.height;
-        el.style.zIndex = obj.zIndex || ++zCounter;
-        el.style.opacity = obj.opacity;
-        el.style.borderRadius = obj.borderRadius;
-        el.style.color = obj.color || '';
-        el.style.fontSize = obj.fontSize || '';
-        el.style.background = obj.bgColor || 'rgba(255,255,255,0.12)';
-        el.style.transform = obj.rotation && obj.rotation !== '0' ? `rotate(${obj.rotation}deg)` : '';
-        el.dataset.rotation = obj.rotation || '0';
-        el.dataset.blur = obj.blur || '12';
-        el.dataset.bgColor = obj.bgColor || '';
-        el.dataset.linkUrl = obj.linkUrl || '';
-        el.dataset.mediaUrl = obj.mediaUrl || '';
-        
-        if (obj.blur && obj.blur !== '0') {
-          el.style.backdropFilter = `blur(${obj.blur}px)`;
-          el.style.WebkitBackdropFilter = `blur(${obj.blur}px)`;
-        }
-        
-        // Resize handles
-        const dirs = ['nw','n','ne','e','se','s','sw','w'];
-        dirs.forEach(d => {
-          const h = document.createElement('div');
-          h.className = 'rh rh-' + d;
-          el.appendChild(h);
-        });
-        
-        // Delete button
-        const del = document.createElement('button');
-        del.className = 'del-btn';
-        del.innerHTML = '✕';
-        del.onclick = (ev) => { ev.stopPropagation(); deleteElement(el); };
-        el.appendChild(del);
-        
-        // Content
-        if (obj.type === 'text') {
-          el.classList.add('text-el');
-          el.contentEditable = 'true';
-          el.innerHTML = obj.content || 'Texto aquí...';
-        } else if (obj.type === 'panel') {
-          el.classList.add('panel-el');
-          el.innerHTML = obj.content || '<div style="text-align:center;color:rgba(255,255,255,0.5);font-size:13px;padding:20px;">Panel de vidrio</div>';
-        } else if (obj.type === 'link') {
-          el.classList.add('link-el');
-          el.innerHTML = obj.content || '<a href="#" style="color:#a29bfe;">🔗 Enlace</a>';
-          const a = el.querySelector('a');
-          if (a) {
-            a.href = obj.linkUrl || '#';
-            a.onclick = (ev) => { ev.stopPropagation(); };
-          }
-        } else if (obj.type === 'image') {
-          el.classList.add('image-el');
-          const img = document.createElement('img');
-          img.src = obj.mediaUrl || 'https://picsum.photos/300/200';
-          img.alt = 'Imagen';
-          img.draggable = false;
-          el.appendChild(img);
-        } else if (obj.type === 'video') {
-          el.classList.add('video-el');
-          const vid = document.createElement('video');
-          vid.src = obj.mediaUrl || 'https://www.w3schools.com/html/mov_bbb.mp4';
-          vid.loop = true;
-          vid.muted = true;
-          vid.playsInline = true;
-          vid.style.cssText = 'width:100%;height:100%;object-fit:cover;';
-          el.appendChild(vid);
-        }
-        
-        el.addEventListener('mousedown', onElementMouseDown);
-        el.addEventListener('click', () => selectElement(el));
-        
-        // Update ID counter
-        const num = parseInt(obj.id.replace('el-','')) || 0;
-        if (num >= elementIdCounter) elementIdCounter = num + 1;
-        
-        canvas.appendChild(el);
-      });
-      
-      toast('📤 Proyecto importado correctamente');
-    } catch(err) {
-      toast('❌ Error al importar: ' + err.message);
-    }
-  };
-  reader.readAsText(file);
-  event.target.value = '';
-}
-
-// ============================================================
-// KEYBOARD SHORTCUTS
-// ============================================================
-document.addEventListener('keydown', (e) => {
-  // Delete/Backspace
-  if ((e.key === 'Delete' || e.key === 'Backspace') && selectedEl) {
-    // Don't delete if editing text
-    if (selectedEl.dataset.type === 'text' && document.activeElement === selectedEl) return;
-    deleteSelected();
-    e.preventDefault();
-  }
-  
-  // Ctrl+D = Duplicate
-  if (e.ctrlKey && e.key === 'd') {
-    e.preventDefault();
-    duplicateSelected();
-  }
-  
-  // Ctrl+Z = Undo (just toast for now)
-  if (e.ctrlKey && e.key === 'z') {
-    toast('↩️ Undo no disponible aún');
-  }
-  
-  // Escape = Deselect
-  if (e.key === 'Escape') {
-    deselectAll();
-  }
-  
-  // Arrow keys = nudge
-  if (selectedEl && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
-    e.preventDefault();
-    const step = e.shiftKey ? 10 : 1;
-    const snap = document.getElementById('snapToggle').checked;
-    const gridSize = parseInt(document.getElementById('gridSize').value) || 20;
-    const s = snap ? gridSize : step;
-    
-    const x = parseFloat(selectedEl.style.left) || 0;
-    const y = parseFloat(selectedEl.style.top) || 0;
-    
-    if (e.key === 'ArrowLeft') selectedEl.style.left = (x - s) + 'px';
-    if (e.key === 'ArrowRight') selectedEl.style.left = (x + s) + 'px';
-    if (e.key === 'ArrowUp') selectedEl.style.top = (y - s) + 'px';
-    if (e.key === 'ArrowDown') selectedEl.style.top = (y + s) + 'px';
-    if (selectedEl) refreshProps();
-  }
-});
-
-// ============================================================
-// INIT - Add default elements
-// ============================================================
-(function init() {
-  // Add some demo elements
-  const t1 = addElement('text');
-  t1.style.left = '60px';
-  t1.style.top = '80px';
-  t1.style.width = '280px';
-  t1.textContent = 'Bienvenido a ProEditor ✦';
-  t1.style.fontSize = '28px';
-  t1.style.fontWeight = 'bold';
-  t1.style.background = 'rgba(108,92,231,0.15)';
-  t1.style.textAlign = 'center';
-  t1.dataset.bgColor = 'rgba(108,92,231,0.15)';
-  
-  const p1 = addElement('panel');
-  p1.style.left = '420px';
-  p1.style.top = '70px';
-  p1.style.width = '240px';
-  p1.style.height = '200px';
-  p1.style.background = 'rgba(255,255,255,0.06)';
-  p1.dataset.bgColor = 'rgba(255,255,255,0.06)';
-  p1.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.7);font-size:14px;">✨ Panel de vidrio<br><span style="font-size:12px;color:rgba(255,255,255,0.3);">Redimensionable y arrastrable</span></div>';
-  
-  const t2 = addElement('text');
-  t2.style.left = '60px';
-  t2.style.top = '200px';
-  t2.style.width = '260px';
-  t2.textContent = 'Haz clic en cualquier elemento para editarlo. Usa el panel de la derecha para personalizar.';
-  t2.style.fontSize = '14px';
-  t2.style.color = 'rgba(255,255,255,0.6)';
-  t2.style.background = 'transparent';
-  t2.style.backdropFilter = 'none';
-  t2.style.border = 'none';
-  t2.style.boxShadow = 'none';
-  t2.style.padding = '6px 12px';
-  t2.dataset.bgColor = 'transparent';
-  t2.dataset.blur = '0';
-  
-  const l1 = addElement('link');
-  l1.style.left = '60px';
-  l1.style.top = '300px';
-  l1.style.width = '180px';
-  l1.dataset.linkUrl = 'https://github.com';
-  const a1 = l1.querySelector('a');
-  if (a1) { a1.href = 'https://github.com'; a1.textContent = '🔗 Ir a GitHub'; a1.style.color = '#a29bfe'; }
-  
-  // Deselect
-  setTimeout(() => deselectAll(), 100);
-  
-  toast('🚀 ProEditor listo — arrastra, redimensiona y crea');
-})();
-</script>
-
+<script src="script.js"></script>
 </body>
 </html>
