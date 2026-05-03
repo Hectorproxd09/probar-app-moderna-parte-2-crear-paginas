@@ -31,16 +31,14 @@ function saveHistory() {
   historyIndex++;
 }
 
-/* =========================
-   SNAP TOGGLE
-========================= */
+/* SNAP TOGGLE */
 function toggleSnap() {
   snapEnabled = !snapEnabled;
+  const btn = event.target;
+  btn.style.borderColor = snapEnabled ? "var(--accent)" : "";
 }
 
-/* =========================
-   BACKGROUND
-========================= */
+/* BACKGROUND */
 function setBackground() {
   const url = document.getElementById("bg-url").value.trim();
   if (!url) return;
@@ -51,9 +49,7 @@ function setBackground() {
   render();
 }
 
-/* =========================
-   DESELECCIÓN
-========================= */
+/* DESELECCIÓN */
 canvas.addEventListener("click", (e) => {
   if (e.target === canvas) {
     selectedId = null;
@@ -61,12 +57,9 @@ canvas.addEventListener("click", (e) => {
   }
 });
 
-/* =========================
-   CREAR
-========================= */
+/* CREAR */
 function addElement(type) {
   let link = "";
-
   if (type === "button") {
     link = prompt("Link del botón:", "https://") || "";
   }
@@ -74,13 +67,13 @@ function addElement(type) {
   elements.push({
     id: Date.now(),
     type,
-    text: type === "button" ? "Botón" : "Texto",
+    text: type === "button" ? "Botón" : (type === "panel" ? "" : "Nuevo Texto"),
     x: 100,
     y: 100,
-    width: 150,
-    height: 80,
+    width: 200,
+    height: 120,
     size: 20,
-    color: "#000000",
+    color: "#ffffff",
     link,
     z: elements.length
   });
@@ -89,32 +82,11 @@ function addElement(type) {
   render();
 }
 
-/* =========================
-   FONDO INTELIGENTE
-========================= */
-function applySmartBackground() {
-  if (background.type !== "image") return;
-
-  const img = new Image();
-  img.src = background.url;
-
-  img.onload = () => {
-    const imgRatio = img.width / img.height;
-    const canvasRatio = canvas.clientWidth / canvas.clientHeight;
-
-    const mode = imgRatio > canvasRatio ? "contain" : "cover";
-
-    canvas.style.background = `url(${background.url}) center/${mode} no-repeat`;
-  };
-}
-
-/* =========================
-   RENDER
-========================= */
+/* RENDER */
 function render() {
   canvas.innerHTML = "";
 
-  /* BACKGROUND */
+  /* APLICAR FONDO */
   if (background.type === "video") {
     const video = document.createElement("video");
     video.src = background.url;
@@ -123,19 +95,17 @@ function render() {
     video.muted = true;
     video.className = "bg-video";
     canvas.appendChild(video);
-    canvas.style.background = "none";
+    canvas.style.backgroundImage = "none";
   } else if (background.type === "image") {
-    applySmartBackground();
-  } else {
-    canvas.style.background = "white";
+    canvas.style.backgroundImage = `url(${background.url})`;
+    canvas.style.backgroundSize = "cover";
+    canvas.style.backgroundPosition = "center";
   }
 
-  /* ORDEN */
-  elements.sort((a,b) => a.z - b.z);
+  elements.sort((a, b) => a.z - b.z);
 
   elements.forEach(el => {
     let div;
-
     if (el.type === "button") {
       div = document.createElement("a");
       div.href = el.link || "#";
@@ -146,20 +116,16 @@ function render() {
     }
 
     div.innerText = el.text;
-
     div.style.left = el.x + "px";
     div.style.top = el.y + "px";
     div.style.zIndex = el.z;
 
-    if (el.type !== "panel") {
-      div.style.fontSize = el.size + "px";
-      div.style.color = el.color;
-      div.style.background = "transparent";
-    }
-
     if (el.type === "panel") {
       div.style.width = el.width + "px";
       div.style.height = el.height + "px";
+    } else {
+      div.style.fontSize = el.size + "px";
+      div.style.color = el.color;
     }
 
     if (el.id === selectedId) {
@@ -167,7 +133,7 @@ function render() {
       addHandles(div, el);
     }
 
-    /* EDIT */
+    /* EVENTOS */
     div.ondblclick = (e) => {
       e.stopPropagation();
       const txt = prompt("Editar texto:", el.text);
@@ -178,32 +144,28 @@ function render() {
       }
     };
 
-    /* CLICK */
     div.onclick = (e) => {
       e.stopPropagation();
       selectedId = el.id;
-      el.z = Math.max(...elements.map(e => e.z)) + 1;
+      // Traer al frente al hacer click
+      el.z = Math.max(0, ...elements.map(e => e.z)) + 1;
       updatePanel();
-      saveHistory();
       render();
     };
 
-    /* DRAG */
     div.onmousedown = (e) => {
+      if (e.target.classList.contains('handle')) return;
       e.preventDefault();
-
-      const offsetX = e.offsetX;
-      const offsetY = e.offsetY;
-
-      selectedId = el.id;
+      
+      const offsetX = e.clientX - div.getBoundingClientRect().left;
+      const offsetY = e.clientY - div.getBoundingClientRect().top;
 
       function move(e2) {
         let newX = e2.clientX - canvas.offsetLeft - offsetX;
         let newY = e2.clientY - canvas.offsetTop - offsetY;
 
         if (snapEnabled) {
-          const snap = 10;
-
+          const snap = 15;
           elements.forEach(other => {
             if (other.id !== el.id) {
               if (Math.abs(newX - other.x) < snap) newX = other.x;
@@ -211,10 +173,8 @@ function render() {
             }
           });
         }
-
         el.x = newX;
         el.y = newY;
-
         render();
       }
 
@@ -223,7 +183,6 @@ function render() {
         document.removeEventListener("mouseup", stop);
         saveHistory();
       }
-
       document.addEventListener("mousemove", move);
       document.addEventListener("mouseup", stop);
     };
@@ -234,24 +193,20 @@ function render() {
   generateCode();
 }
 
-/* =========================
-   HANDLES
-========================= */
+/* HANDLES REDIMENSIÓN */
 function addHandles(div, el) {
-  const positions = ["br","tr","bl","tl","r","l","t","b"];
-
+  const positions = ["br", "tr", "bl", "tl", "r", "l", "t", "b"];
   positions.forEach(pos => {
     const h = document.createElement("div");
     h.className = "handle " + pos;
-
     h.onmousedown = (e) => {
       e.stopPropagation();
-
       const startX = e.clientX;
       const startY = e.clientY;
-
       const startW = el.width;
       const startH = el.height;
+      const startXPos = el.x;
+      const startYPos = el.y;
       const startSize = el.size;
 
       function resize(e2) {
@@ -259,16 +214,19 @@ function addHandles(div, el) {
         let dy = e2.clientY - startY;
 
         if (el.type === "panel") {
-          if (pos.includes("r")) el.width = startW + dx;
-          if (pos.includes("l")) el.width = startW - dx;
-          if (pos.includes("b")) el.height = startH + dy;
-          if (pos.includes("t")) el.height = startH - dy;
+          if (pos.includes("r")) el.width = Math.max(20, startW + dx);
+          if (pos.includes("b")) el.height = Math.max(20, startH + dy);
+          if (pos.includes("l")) {
+             const newW = Math.max(20, startW - dx);
+             if (newW > 20) { el.width = newW; el.x = startXPos + dx; }
+          }
+          if (pos.includes("t")) {
+             const newH = Math.max(20, startH - dy);
+             if (newH > 20) { el.height = newH; el.y = startYPos + dy; }
+          }
+        } else {
+          el.size = Math.max(8, startSize + dx * 0.2);
         }
-
-        if (el.type !== "panel") {
-          el.size = Math.max(10, startSize + dx * 0.3);
-        }
-
         render();
       }
 
@@ -277,22 +235,17 @@ function addHandles(div, el) {
         document.removeEventListener("mouseup", stop);
         saveHistory();
       }
-
       document.addEventListener("mousemove", resize);
       document.addEventListener("mouseup", stop);
     };
-
     div.appendChild(h);
   });
 }
 
-/* =========================
-   PROPIEDADES
-========================= */
+/* UI PANEL */
 function updatePanel() {
   const el = elements.find(e => e.id === selectedId);
   if (!el) return;
-
   inputs.text.value = el.text;
   inputs.size.value = el.size;
   inputs.color.value = el.color;
@@ -303,29 +256,20 @@ Object.keys(inputs).forEach(k => {
   inputs[k].oninput = () => {
     const el = elements.find(e => e.id === selectedId);
     if (!el) return;
-
-    el[k] = inputs[k].value;
-    saveHistory();
+    el[k] = k === "size" ? parseInt(inputs[k].value) : inputs[k].value;
     render();
   };
 });
 
-/* =========================
-   ELIMINAR
-========================= */
 function deleteElement() {
   if (!selectedId) return;
-
   elements = elements.filter(e => e.id !== selectedId);
   selectedId = null;
-
   saveHistory();
   render();
 }
 
-/* =========================
-   UNDO / REDO
-========================= */
+/* UNDO / REDO */
 function undo() {
   if (historyIndex <= 0) return;
   historyIndex--;
@@ -340,50 +284,30 @@ function redo() {
   render();
 }
 
-/* =========================
-   GENERAR
-========================= */
+/* EXPORTAR */
 function generateCode() {
   let html = "";
   let css = "";
-
   elements.forEach((el, i) => {
-    const c = "el" + i;
-
+    const c = "el-" + i;
     if (el.type === "button") {
       html += `<a class="${c}" href="${el.link}">${el.text}</a>\n`;
     } else {
-      html += `<div class="${c}">${el.type === "text" ? el.text : ""}</div>\n`;
+      html += `<div class="${c}">${el.text}</div>\n`;
     }
 
-    css += `.${c}{
-  position:absolute;
-  left:${el.x}px;
-  top:${el.y}px;
-  z-index:${el.z};
-}\n`;
-
+    css += `.${c} {\n  position: absolute;\n  left: ${el.x}px;\n  top: ${el.y}px;\n  z-index: ${el.z};\n`;
     if (el.type === "panel") {
-      css += `.${c}{
-  width:${el.width}px;
-  height:${el.height}px;
-  background: rgba(255,255,255,0.1);
-  backdrop-filter: blur(10px);
-}\n`;
+      css += `  width: ${el.width}px;\n  height: ${el.height}px;\n  background: rgba(255,255,255,0.1);\n  backdrop-filter: blur(10px);\n  border-radius: 12px;\n`;
+    } else {
+      css += `  font-size: ${el.size}px;\n  color: ${el.color};\n`;
+      if (el.type === "button") css += `  background: #00f0ff; color: #000; padding: 10px 20px; text-decoration: none; border-radius: 8px;\n`;
     }
-
-    if (el.type !== "panel") {
-      css += `.${c}{
-  font-size:${el.size}px;
-  color:${el.color};
-}\n`;
-    }
+    css += `}\n\n`;
   });
-
   htmlOut.textContent = html;
   cssOut.textContent = css;
 }
 
-/* INIT */
 saveHistory();
 render();
