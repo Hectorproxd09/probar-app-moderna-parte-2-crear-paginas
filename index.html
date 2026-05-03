@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Builder - Glassmorphism</title>
+    <!-- Enlazamos el archivo CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Barra de Herramientas -->
+    <div id="toolbar" class="glass">
+        <h2>Herramientas Pro</h2>
+        
+        <div class="tool-group">
+            <button id="btn-add-panel">+ Agregar Panel Vidrio</button>
+            <button id="btn-add-text">+ Agregar Texto</button>
+            <button id="btn-add-link">+ Agregar Enlace/Botón</button>
+        </div>
+
+        <div class="tool-group">
+            <label>Fondo de Pantalla (URL)</label>
+            <input type="text" id="bg-url" placeholder="URL imagen/video...">
+        </div>
+
+        <div class="tool-group">
+            <label>Propiedades (Elemento Seleccionado)</label>
+            <div class="row">
+                <input type="color" id="elem-color" title="Color del texto">
+                <input type="color" id="elem-bg" title="Color de fondo">
+            </div>
+            <input type="number" id="elem-size" placeholder="Tamaño fuente (px)">
+            <div class="row">
+                <button class="align-btn" data-align="left">Izquierda</button>
+                <button class="align-btn" data-align="center">Centro</button>
+                <button class="align-btn" data-align="right">Derecha</button>
+            </div>
+            <button id="btn-delete" style="background: #ff4757; color: white; border: none;">Eliminar Seleccionado</button>
+        </div>
+    </div>
+
+    <!-- Área de Trabajo -->
+    <div id="workspace-container">
+        <div id="workspace">
+            <!-- Los elementos se agregarán aquí -->
+        </div>
+    </div>
+
+    <!-- Panel de Código -->
+    <div id="code-panel" class="glass">
+        <h2>Estructura Exportada</h2>
+        <textarea id="code-output" readonly></textarea>
+    </div>
+    <button id="toggle-code">💻 Ver HTML/CSS</button>
+
+    <!-- Enlazamos el archivo JS -->
+    <script src="script.js"></script>
+</body>
+</html>
