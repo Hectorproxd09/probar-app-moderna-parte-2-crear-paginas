@@ -161,21 +161,54 @@ function render() {
       div.style.height = el.height + "px";
     }
 
-    /* CLICK (🔥 FIX IMPORTANTE) */
+    let isDragging = false;
+
+    /* CLICK (🔥 AHORA FUNCIONA BIEN) */
     div.onclick = (e) => {
       e.stopPropagation();
 
-      // 🔥 si tiene pantalla → navegar
+      if (isDragging) return; // evita conflicto drag
+
       if (el.targetScreen !== null) {
         switchScreen(el.targetScreen);
         return;
       }
 
-      // si no → seleccionar normal
       selectedId = el.id;
       el.z = Math.max(...elements.map(e => e.z)) + 1;
       updatePanel();
       render();
+    };
+
+    /* DRAG */
+    div.onmousedown = (e) => {
+      e.preventDefault();
+      isDragging = false;
+
+      const rect = canvas.getBoundingClientRect();
+      const offsetX = e.clientX - rect.left - el.x;
+      const offsetY = e.clientY - rect.top - el.y;
+
+      function move(ev) {
+        isDragging = true;
+
+        let nx = ev.clientX - rect.left - offsetX;
+        let ny = ev.clientY - rect.top - offsetY;
+
+        el.x = nx;
+        el.y = ny;
+
+        render();
+      }
+
+      function stop() {
+        document.removeEventListener("mousemove", move);
+        document.removeEventListener("mouseup", stop);
+        saveHistory();
+      }
+
+      document.addEventListener("mousemove", move);
+      document.addEventListener("mouseup", stop);
     };
 
     /* EDIT INLINE */
@@ -201,34 +234,6 @@ function render() {
           save();
         }
       };
-    };
-
-    /* DRAG */
-    div.onmousedown = (e) => {
-      e.preventDefault();
-
-      const rect = canvas.getBoundingClientRect();
-      const offsetX = e.clientX - rect.left - el.x;
-      const offsetY = e.clientY - rect.top - el.y;
-
-      function move(ev) {
-        let nx = ev.clientX - rect.left - offsetX;
-        let ny = ev.clientY - rect.top - offsetY;
-
-        el.x = nx;
-        el.y = ny;
-
-        render();
-      }
-
-      function stop() {
-        document.removeEventListener("mousemove", move);
-        document.removeEventListener("mouseup", stop);
-        saveHistory();
-      }
-
-      document.addEventListener("mousemove", move);
-      document.addEventListener("mouseup", stop);
     };
 
     /* HANDLE */
@@ -274,7 +279,6 @@ function render() {
 
       div.appendChild(handle);
 
-      /* DELETE */
       const del = document.createElement("div");
       del.innerText = "✕";
       del.style.position = "absolute";
@@ -283,8 +287,6 @@ function render() {
       del.style.background = "red";
       del.style.color = "white";
       del.style.cursor = "pointer";
-      del.style.fontSize = "12px";
-      del.style.padding = "2px 5px";
 
       del.onclick = (e) => {
         e.stopPropagation();
