@@ -11,27 +11,33 @@
   <button onclick="addElement('text')">Texto</button>
   <button onclick="addElement('button')">Botón</button>
   <button onclick="addElement('panel')">Panel</button>
+
+  <input id="bg-url" placeholder="Fondo (img o video)">
+  <button onclick="setBackground()">Aplicar</button>
+
+  <button onclick="toggleSnap()">▢ Snap</button>
+
   <button onclick="undo()">↶</button>
   <button onclick="redo()">↷</button>
 </div>
 
 <div class="app">
 
-  <!-- SIDEBAR -->
+  <!-- 🔥 PANTALLAS -->
+  <div class="screens">
+    <button onclick="addScreen()">+ Pantalla</button>
+    <div id="screen-list"></div>
+  </div>
+
+  <div id="canvas"></div>
+
   <div class="panel-ui">
     <h3>Propiedades</h3>
 
-    <label>Texto</label>
-    <input id="prop-text">
-
-    <label>Tamaño</label>
+    <input id="prop-text" placeholder="Texto">
     <input id="prop-size" type="number">
-
-    <label>Color</label>
     <input id="prop-color" type="color">
-
-    <label>Link</label>
-    <input id="prop-link">
+    <input id="prop-screen" placeholder="Ir a pantalla (ej: 1)">
 
     <button onclick="deleteElement()">Eliminar</button>
 
@@ -43,10 +49,6 @@
     <h3>CSS</h3>
     <pre id="css-code"></pre>
   </div>
-
-  <!-- CANVAS -->
-  <div id="canvas"></div>
-
 </div>
 
 <script src="script.js"></script>
