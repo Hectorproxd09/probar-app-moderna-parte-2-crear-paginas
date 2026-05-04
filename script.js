@@ -13,7 +13,6 @@ const cssOut = document.getElementById("css-code");
 /* ESTADO */
 let elements = [];
 let selectedId = null;
-
 let currentScreen = 1;
 
 let background = {
@@ -29,7 +28,7 @@ let historyIndex = -1;
 
 function saveHistory() {
   history = history.slice(0, historyIndex + 1);
-  history.push(JSON.stringify({ elements, currentScreen }));
+  history.push(JSON.stringify(elements));
   historyIndex++;
 }
 
@@ -125,6 +124,7 @@ function render() {
     canvas.style.background = "white";
   }
 
+  /* 🔥 FILTRAR SOLO PANTALLA ACTUAL */
   const visible = elements.filter(el => el.screen === currentScreen);
 
   visible.sort((a,b)=>a.z-b.z);
@@ -160,8 +160,8 @@ function render() {
     div.onclick = (e) => {
       e.stopPropagation();
 
-      // 🔥 navegación SOLO si es botón
-      if (el.type === "button" && el.targetScreen) {
+      // 🔥 SOLO botones cambian pantalla
+      if (el.type === "button" && el.targetScreen !== 0) {
         changeScreen(el.targetScreen);
         return;
       }
@@ -173,7 +173,7 @@ function render() {
       render();
     };
 
-    /* EDIT INLINE */
+    /* EDIT INLINE (NO BUG) */
     div.ondblclick = (e) => {
       e.stopPropagation();
 
@@ -198,7 +198,7 @@ function render() {
       };
     };
 
-    /* DRAG */
+    /* DRAG (ESTABLE) */
     div.onmousedown = (e) => {
       e.preventDefault();
 
@@ -209,15 +209,6 @@ function render() {
       function move(ev) {
         let nx = ev.clientX - rect.left - offsetX;
         let ny = ev.clientY - rect.top - offsetY;
-
-        if (snapEnabled) {
-          elements.forEach(o => {
-            if (o.id !== el.id && o.screen === currentScreen) {
-              if (Math.abs(nx - o.x) < 6) nx = o.x;
-              if (Math.abs(ny - o.y) < 6) ny = o.y;
-            }
-          });
-        }
 
         el.x = nx;
         el.y = ny;
@@ -282,27 +273,6 @@ function deleteElement() {
   elements = elements.filter(e => e.id !== selectedId);
   selectedId = null;
   saveHistory();
-  render();
-}
-
-/* =========================
-   UNDO / REDO
-========================= */
-function undo() {
-  if (historyIndex <= 0) return;
-  historyIndex--;
-  const data = JSON.parse(history[historyIndex]);
-  elements = data.elements;
-  currentScreen = data.currentScreen;
-  render();
-}
-
-function redo() {
-  if (historyIndex >= history.length - 1) return;
-  historyIndex++;
-  const data = JSON.parse(history[historyIndex]);
-  elements = data.elements;
-  currentScreen = data.currentScreen;
   render();
 }
 
