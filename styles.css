@@ -15,19 +15,11 @@ body {
   background: rgba(255,255,255,0.05);
 }
 
-.topbar button {
-  background: rgba(255,255,255,0.1);
-  border: none;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
 /* LAYOUT */
 .app {
   display: flex;
   height: calc(100vh - 60px);
+  overflow: hidden; /* 🔥 evita scroll global */
 }
 
 /* PANTALLAS */
@@ -37,16 +29,33 @@ body {
   background: rgba(255,255,255,0.05);
 }
 
-.screens button {
-  width: 100%;
-  margin-bottom: 5px;
-}
-
 /* CANVAS */
 #canvas {
   flex: 1;
   position: relative;
   background: white;
+  overflow: hidden;
+}
+
+/* PANEL DERECHO */
+.panel-ui {
+  width: 350px;
+  padding: 15px;
+  background: rgba(255,255,255,0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* 🔥 clave */
+}
+
+/* 🔥 CAJAS DE CÓDIGO CON SCROLL */
+.code-box {
+  background: #111;
+  color: #0f0;
+  padding: 10px;
+  height: 120px;
+  overflow: auto;
+  font-size: 12px;
+  margin-bottom: 10px;
 }
 
 /* ELEMENTOS */
