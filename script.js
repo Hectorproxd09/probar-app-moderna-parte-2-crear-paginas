@@ -3,22 +3,19 @@ const canvas = document.getElementById("canvas");
 const inputs = {
   text: document.getElementById("prop-text"),
   size: document.getElementById("prop-size"),
-  color: document.getElementById("prop-color"),
-  screen: document.getElementById("prop-screen")
+  color: document.getElementById("prop-color")
 };
 
 const htmlOut = document.getElementById("html-code");
 const cssOut = document.getElementById("css-code");
-const jsOut = document.getElementById("js-code");
 
-/* =========================
-   ESTADO
-========================= */
-let screens = [[]];
-let currentScreen = 0;
-
+/* ESTADO */
+let elements = [];
 let selectedId = null;
 
+let currentScreen = 1;
+
+/* BACKGROUND */
 let background = {
   type: null,
   url: ""
@@ -32,35 +29,17 @@ let historyIndex = -1;
 
 function saveHistory() {
   history = history.slice(0, historyIndex + 1);
-  history.push(JSON.stringify(screens));
+  history.push(JSON.stringify({ elements, currentScreen }));
   historyIndex++;
 }
 
 /* =========================
-   PANTALLAS
+   CAMBIAR PANTALLA
 ========================= */
-function addScreen() {
-  screens.push([]);
-  updateScreenUI();
-}
-
-function switchScreen(index) {
-  currentScreen = index;
+function changeScreen(screen) {
+  currentScreen = screen;
   selectedId = null;
-  updatePanel();
   render();
-}
-
-function updateScreenUI() {
-  const list = document.getElementById("screen-list");
-  list.innerHTML = "";
-
-  screens.forEach((_, i) => {
-    const btn = document.createElement("button");
-    btn.innerText = "Pantalla " + (i + 1);
-    btn.onclick = () => switchScreen(i);
-    list.appendChild(btn);
-  });
 }
 
 /* =========================
@@ -89,16 +68,22 @@ function setBackground() {
 canvas.addEventListener("click", (e) => {
   if (e.target === canvas) {
     selectedId = null;
-    updatePanel();
     render();
   }
 });
 
 /* =========================
-   CREAR
+   CREAR ELEMENTO
 ========================= */
 function addElement(type) {
-  screens[currentScreen].push({
+  let targetScreen = 0;
+
+  if (type === "button") {
+    const s = prompt("Ir a pantalla (0 = ninguna):", "0");
+    targetScreen = parseInt(s) || 0;
+  }
+
+  elements.push({
     id: Date.now(),
     type,
     text: type === "button" ? "Botón" : "Texto",
@@ -108,8 +93,9 @@ function addElement(type) {
     height: 80,
     size: 20,
     color: "#000000",
-    targetScreen: null,
-    z: screens[currentScreen].length
+    targetScreen,
+    screen: currentScreen, // 🔥 CLAVE
+    z: elements.length
   });
 
   saveHistory();
@@ -131,19 +117,27 @@ function render() {
     video.muted = true;
     video.className = "bg-video";
     canvas.appendChild(video);
-    canvas.style.background = "none";
   } else if (background.type === "image") {
     canvas.style.background = `url(${background.url}) center/cover no-repeat`;
   } else {
     canvas.style.background = "white";
   }
 
-  const elements = screens[currentScreen];
-  elements.sort((a,b) => a.z - b.z);
+  /* FILTRAR POR PANTALLA */
+  const visible = elements.filter(el => el.screen === currentScreen);
 
-  elements.forEach(el => {
-    const div = document.createElement("div");
-    div.className = "element " + el.type;
+  visible.sort((a,b) => a.z - b.z);
+
+  visible.forEach(el => {
+    let div;
+
+    if (el.type === "button") {
+      div = document.createElement("div");
+      div.className = "element button";
+    } else {
+      div = document.createElement("div");
+      div.className = "element " + el.type;
+    }
 
     div.innerText = el.text;
 
@@ -161,16 +155,13 @@ function render() {
       div.style.height = el.height + "px";
     }
 
-    let isDragging = false;
-
-    /* CLICK (🔥 AHORA FUNCIONA BIEN) */
+    /* CLICK (🔥 ARREGLADO) */
     div.onclick = (e) => {
       e.stopPropagation();
 
-      if (isDragging) return; // evita conflicto drag
-
-      if (el.targetScreen !== null) {
-        switchScreen(el.targetScreen);
+      // 🔥 SI TIENE PANTALLA → CAMBIA
+      if (el.targetScreen && el.targetScreen !== 0) {
+        changeScreen(el.targetScreen);
         return;
       }
 
@@ -180,20 +171,50 @@ function render() {
       render();
     };
 
+    /* EDIT INLINE */
+    div.ondblclick = (e) => {
+      e.stopPropagation();
+
+      div.contentEditable = true;
+      div.focus();
+
+      function save() {
+        el.text = div.innerText;
+        div.contentEditable = false;
+        saveHistory();
+        render();
+      }
+
+      div.onblur = save;
+
+      div.onkeydown = (ev) => {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          save();
+        }
+      };
+    };
+
     /* DRAG */
     div.onmousedown = (e) => {
       e.preventDefault();
-      isDragging = false;
 
       const rect = canvas.getBoundingClientRect();
       const offsetX = e.clientX - rect.left - el.x;
       const offsetY = e.clientY - rect.top - el.y;
 
       function move(ev) {
-        isDragging = true;
-
         let nx = ev.clientX - rect.left - offsetX;
         let ny = ev.clientY - rect.top - offsetY;
+
+        if (snapEnabled) {
+          elements.forEach(o => {
+            if (o.id !== el.id && o.screen === currentScreen) {
+              if (Math.abs(nx - o.x) < 6) nx = o.x;
+              if (Math.abs(ny - o.y) < 6) ny = o.y;
+            }
+          });
+        }
 
         el.x = nx;
         el.y = ny;
@@ -211,91 +232,6 @@ function render() {
       document.addEventListener("mouseup", stop);
     };
 
-    /* EDIT INLINE */
-    div.ondblclick = (e) => {
-      e.stopPropagation();
-
-      div.contentEditable = true;
-      div.focus();
-
-      function save() {
-        el.text = div.innerText;
-        div.contentEditable = false;
-        updatePanel();
-        saveHistory();
-        render();
-      }
-
-      div.onblur = save;
-
-      div.onkeydown = (ev) => {
-        if (ev.key === "Enter") {
-          ev.preventDefault();
-          save();
-        }
-      };
-    };
-
-    /* HANDLE */
-    if (el.id === selectedId) {
-      div.classList.add("selected");
-
-      const handle = document.createElement("div");
-      handle.className = "handle";
-
-      handle.onmousedown = (e) => {
-        e.stopPropagation();
-
-        const startX = e.clientX;
-        const startY = e.clientY;
-
-        const startW = el.width;
-        const startH = el.height;
-        const startSize = el.size;
-
-        function resize(ev) {
-          const dx = ev.clientX - startX;
-          const dy = ev.clientY - startY;
-
-          if (el.type === "panel") {
-            el.width = Math.max(20, startW + dx);
-            el.height = Math.max(20, startH + dy);
-          } else {
-            el.size = Math.max(10, startSize + dx * 0.3);
-          }
-
-          render();
-        }
-
-        function stop() {
-          document.removeEventListener("mousemove", resize);
-          document.removeEventListener("mouseup", stop);
-          saveHistory();
-        }
-
-        document.addEventListener("mousemove", resize);
-        document.addEventListener("mouseup", stop);
-      };
-
-      div.appendChild(handle);
-
-      const del = document.createElement("div");
-      del.innerText = "✕";
-      del.style.position = "absolute";
-      del.style.top = "-10px";
-      del.style.right = "-10px";
-      del.style.background = "red";
-      del.style.color = "white";
-      del.style.cursor = "pointer";
-
-      del.onclick = (e) => {
-        e.stopPropagation();
-        deleteElement();
-      };
-
-      div.appendChild(del);
-    }
-
     canvas.appendChild(div);
   });
 
@@ -306,26 +242,20 @@ function render() {
    PROPIEDADES
 ========================= */
 function updatePanel() {
-  const el = screens[currentScreen].find(e => e.id === selectedId);
+  const el = elements.find(e => e.id === selectedId);
   if (!el) return;
 
   inputs.text.value = el.text;
   inputs.size.value = el.size;
   inputs.color.value = el.color;
-  inputs.screen.value = el.targetScreen ?? "";
 }
 
 Object.keys(inputs).forEach(k => {
   inputs[k].oninput = () => {
-    const el = screens[currentScreen].find(e => e.id === selectedId);
+    const el = elements.find(e => e.id === selectedId);
     if (!el) return;
 
-    if (k === "screen") {
-      el.targetScreen = inputs[k].value === "" ? null : Number(inputs[k].value);
-    } else {
-      el[k] = inputs[k].value;
-    }
-
+    el[k] = inputs[k].value;
     saveHistory();
     render();
   };
@@ -335,7 +265,7 @@ Object.keys(inputs).forEach(k => {
    DELETE
 ========================= */
 function deleteElement() {
-  screens[currentScreen] = screens[currentScreen].filter(e => e.id !== selectedId);
+  elements = elements.filter(e => e.id !== selectedId);
   selectedId = null;
   saveHistory();
   render();
@@ -347,88 +277,53 @@ function deleteElement() {
 function undo() {
   if (historyIndex <= 0) return;
   historyIndex--;
-  screens = JSON.parse(history[historyIndex]);
+  const data = JSON.parse(history[historyIndex]);
+  elements = data.elements;
+  currentScreen = data.currentScreen;
   render();
 }
 
 function redo() {
   if (historyIndex >= history.length - 1) return;
   historyIndex++;
-  screens = JSON.parse(history[historyIndex]);
+  const data = JSON.parse(history[historyIndex]);
+  elements = data.elements;
+  currentScreen = data.currentScreen;
   render();
 }
 
 /* =========================
-   EXPORT
+   EXPORT (🔥 INCLUYE SCREENS)
 ========================= */
 function generateCode() {
   let html = "";
   let css = "";
   let js = "";
 
-  html += `<div id="app">\n`;
+  elements.forEach((el, i) => {
+    const c = "el" + i;
 
-  screens.forEach((screen, sIndex) => {
+    html += `<div class="${c}" onclick="${el.targetScreen ? `go(${el.targetScreen})` : ""}">${el.text}</div>\n`;
 
-    html += `<div class="screen" id="screen-${sIndex}" style="display:${sIndex === 0 ? 'block':'none'}">\n`;
-
-    screen.forEach((el, i) => {
-      const c = `el_${sIndex}_${i}`;
-
-      html += `<div class="${c}"`;
-
-      if (el.targetScreen !== null) {
-        html += ` onclick="goToScreen(${el.targetScreen})"`;
-      }
-
-      html += `>${el.text}</div>\n`;
-
-      css += `.${c}{
+    css += `.${c}{
   position:absolute;
   left:${el.x}px;
   top:${el.y}px;
+  display:${el.screen === 1 ? "block" : "none"};
 }\n`;
-
-      if (el.type === "panel") {
-        css += `.${c}{
-  width:${el.width}px;
-  height:${el.height}px;
-  background: rgba(255,255,255,0.2);
-}\n`;
-      } else {
-        css += `.${c}{
-  font-size:${el.size}px;
-  color:${el.color};
-}\n`;
-      }
-    });
-
-    html += `</div>\n`;
   });
 
-  html += `</div>`;
-
-  css += `
-.screen {
-  position: relative;
-  width: 100%;
-  height: 100vh;
-}
-`;
-
-  js += `
-function goToScreen(n){
-  document.querySelectorAll('.screen').forEach(s => s.style.display='none');
-  document.getElementById('screen-' + n).style.display='block';
+  js = `
+function go(screen){
+  document.querySelectorAll('[class^="el"]').forEach(e=>e.style.display="none");
+  document.querySelectorAll('[data-screen="'+screen+'"]').forEach(e=>e.style.display="block");
 }
 `;
 
   htmlOut.textContent = html;
-  cssOut.textContent = css;
-  jsOut.textContent = js;
+  cssOut.textContent = css + "\n\n/* JS */\n" + js;
 }
 
 /* INIT */
-updateScreenUI();
 saveHistory();
 render();
