@@ -3,7 +3,8 @@ const canvas = document.getElementById("canvas");
 const inputs = {
   text: document.getElementById("prop-text"),
   size: document.getElementById("prop-size"),
-  color: document.getElementById("prop-color")
+  color: document.getElementById("prop-color"),
+  link: document.getElementById("prop-link")
 };
 
 const htmlOut = document.getElementById("html-code");
@@ -15,7 +16,6 @@ let selectedId = null;
 
 let currentScreen = 1;
 
-/* BACKGROUND */
 let background = {
   type: null,
   url: ""
@@ -34,7 +34,7 @@ function saveHistory() {
 }
 
 /* =========================
-   CAMBIAR PANTALLA
+   PANTALLAS
 ========================= */
 function changeScreen(screen) {
   currentScreen = screen;
@@ -68,12 +68,13 @@ function setBackground() {
 canvas.addEventListener("click", (e) => {
   if (e.target === canvas) {
     selectedId = null;
+    updatePanel();
     render();
   }
 });
 
 /* =========================
-   CREAR ELEMENTO
+   CREAR
 ========================= */
 function addElement(type) {
   let targetScreen = 0;
@@ -93,8 +94,9 @@ function addElement(type) {
     height: 80,
     size: 20,
     color: "#000000",
+    link: "",
     targetScreen,
-    screen: currentScreen, // 🔥 CLAVE
+    screen: currentScreen, // 🔥 clave
     z: elements.length
   });
 
@@ -123,10 +125,9 @@ function render() {
     canvas.style.background = "white";
   }
 
-  /* FILTRAR POR PANTALLA */
   const visible = elements.filter(el => el.screen === currentScreen);
 
-  visible.sort((a,b) => a.z - b.z);
+  visible.sort((a,b)=>a.z-b.z);
 
   visible.forEach(el => {
     let div;
@@ -155,18 +156,19 @@ function render() {
       div.style.height = el.height + "px";
     }
 
-    /* CLICK (🔥 ARREGLADO) */
+    /* CLICK */
     div.onclick = (e) => {
       e.stopPropagation();
 
-      // 🔥 SI TIENE PANTALLA → CAMBIA
-      if (el.targetScreen && el.targetScreen !== 0) {
+      // 🔥 navegación SOLO si es botón
+      if (el.type === "button" && el.targetScreen) {
         changeScreen(el.targetScreen);
         return;
       }
 
       selectedId = el.id;
-      el.z = Math.max(...elements.map(e => e.z)) + 1;
+      el.z = Math.max(...elements.map(e=>e.z)) + 1;
+
       updatePanel();
       render();
     };
@@ -182,6 +184,7 @@ function render() {
         el.text = div.innerText;
         div.contentEditable = false;
         saveHistory();
+        updatePanel();
         render();
       }
 
@@ -232,6 +235,11 @@ function render() {
       document.addEventListener("mouseup", stop);
     };
 
+    /* SELECCIÓN */
+    if (el.id === selectedId) {
+      div.classList.add("selected");
+    }
+
     canvas.appendChild(div);
   });
 
@@ -243,7 +251,13 @@ function render() {
 ========================= */
 function updatePanel() {
   const el = elements.find(e => e.id === selectedId);
-  if (!el) return;
+
+  if (!el) {
+    inputs.text.value = "";
+    inputs.size.value = "";
+    inputs.color.value = "#000000";
+    return;
+  }
 
   inputs.text.value = el.text;
   inputs.size.value = el.size;
@@ -293,35 +307,26 @@ function redo() {
 }
 
 /* =========================
-   EXPORT (🔥 INCLUYE SCREENS)
+   EXPORT
 ========================= */
 function generateCode() {
   let html = "";
   let css = "";
-  let js = "";
 
   elements.forEach((el, i) => {
     const c = "el" + i;
 
-    html += `<div class="${c}" onclick="${el.targetScreen ? `go(${el.targetScreen})` : ""}">${el.text}</div>\n`;
+    html += `<div class="${c}">${el.text}</div>\n`;
 
     css += `.${c}{
   position:absolute;
   left:${el.x}px;
   top:${el.y}px;
-  display:${el.screen === 1 ? "block" : "none"};
 }\n`;
   });
 
-  js = `
-function go(screen){
-  document.querySelectorAll('[class^="el"]').forEach(e=>e.style.display="none");
-  document.querySelectorAll('[data-screen="'+screen+'"]').forEach(e=>e.style.display="block");
-}
-`;
-
   htmlOut.textContent = html;
-  cssOut.textContent = css + "\n\n/* JS */\n" + js;
+  cssOut.textContent = css;
 }
 
 /* INIT */
