@@ -8,8 +8,7 @@ const inputs = {
   screen: document.getElementById("prop-screen")
 };
 
-const htmlOut = document.getElementById("html-code");
-const cssOut = document.getElementById("css-code");
+const output = document.getElementById("html-code");
 
 /* ESTADO */
 let screens = [[]];
@@ -17,24 +16,14 @@ let currentScreen = 0;
 let selectedId = null;
 
 let background = { type: null, url: "" };
-let snapEnabled = false;
 
-/* HISTORIAL */
-let history = [];
-let historyIndex = -1;
-
+/* ======================
+   PANTALLAS
+====================== */
 function getElements() {
   return screens[currentScreen];
 }
 
-function saveHistory() {
-  history.push(JSON.stringify(screens));
-  historyIndex++;
-}
-
-/* =========================
-   PANTALLAS
-========================= */
 function addScreen() {
   screens.push([]);
   renderScreens();
@@ -58,102 +47,59 @@ function renderScreens() {
   });
 }
 
-/* =========================
-   SNAP
-========================= */
-function toggleSnap() {
-  snapEnabled = !snapEnabled;
-}
-
-/* =========================
+/* ======================
    BACKGROUND
-========================= */
+====================== */
 function setBackground() {
   const url = document.getElementById("bg-url").value.trim();
   if (!url) return;
 
-  background.type = url.match(/\.(mp4|webm|ogg)$/i) ? "video" : "image";
   background.url = url;
-
   render();
 }
 
-/* =========================
-   DESELECCIÓN
-========================= */
-canvas.addEventListener("click", (e) => {
-  if (e.target === canvas) {
-    selectedId = null;
-    updatePanel();
-    render();
-  }
-});
-
-/* =========================
+/* ======================
    CREAR
-========================= */
+====================== */
 function addElement(type) {
   const elements = getElements();
 
   elements.push({
     id: Date.now(),
     type,
-    text: type === "button" ? "Botón" : "Texto",
+    text: "Texto",
     x: 100,
     y: 100,
     width: 150,
     height: 80,
     size: 20,
     color: "#000",
-    targetScreen: null,
-    z: elements.length
+    targetScreen: null
   });
 
-  saveHistory();
   render();
 }
 
-/* =========================
+/* ======================
    RENDER
-========================= */
+====================== */
 function render() {
   const elements = getElements();
-
   canvas.innerHTML = "";
 
-  /* BACKGROUND */
-  if (background.type === "video") {
-    const v = document.createElement("video");
-    v.src = background.url;
-    v.autoplay = true;
-    v.loop = true;
-    v.muted = true;
-    v.className = "bg-video";
-    canvas.appendChild(v);
-  } else if (background.type === "image") {
+  if (background.url) {
     canvas.style.background = `url(${background.url}) center/cover`;
   } else {
     canvas.style.background = "white";
   }
 
-  elements.sort((a,b)=>a.z-b.z);
-
   elements.forEach(el => {
-    let div;
-
-    if (el.type === "button") {
-      div = document.createElement("div");
-      div.className = "element button";
-    } else {
-      div = document.createElement("div");
-      div.className = "element " + el.type;
-    }
-
+    const div = document.createElement("div");
+    div.className = "element " + el.type;
     div.innerText = el.text;
 
     div.style.left = el.x + "px";
     div.style.top = el.y + "px";
-    div.style.zIndex = el.z;
 
     if (el.type !== "panel") {
       div.style.fontSize = el.size + "px";
@@ -175,111 +121,67 @@ function render() {
       }
 
       selectedId = el.id;
-      el.z = Math.max(...elements.map(e=>e.z)) + 1;
-
       updatePanel();
       render();
     };
 
-    /* DOBLE CLICK EDIT */
+    /* EDIT */
     div.ondblclick = (e) => {
       e.stopPropagation();
-
       div.contentEditable = true;
       div.focus();
 
-      function save() {
+      div.onblur = () => {
         el.text = div.innerText;
         div.contentEditable = false;
-        updatePanel();
-        saveHistory();
         render();
-      }
-
-      div.onblur = save;
-
-      div.onkeydown = (ev) => {
-        if (ev.key === "Enter") {
-          ev.preventDefault();
-          save();
-        }
       };
     };
 
     /* DRAG */
     div.onmousedown = (e) => {
-      e.preventDefault();
-
-      const rect = canvas.getBoundingClientRect();
-      const offsetX = e.clientX - rect.left - el.x;
-      const offsetY = e.clientY - rect.top - el.y;
-
-      selectedId = el.id;
+      const offsetX = e.offsetX;
+      const offsetY = e.offsetY;
 
       function move(ev) {
-        let nx = ev.clientX - rect.left - offsetX;
-        let ny = ev.clientY - rect.top - offsetY;
-
-        if (snapEnabled) {
-          getElements().forEach(o => {
-            if (o.id !== el.id) {
-              if (Math.abs(nx - o.x) < 6) nx = o.x;
-              if (Math.abs(ny - o.y) < 6) ny = o.y;
-            }
-          });
-        }
-
-        el.x = nx;
-        el.y = ny;
-
+        el.x = ev.clientX - canvas.offsetLeft - offsetX;
+        el.y = ev.clientY - canvas.offsetTop - offsetY;
         render();
       }
 
       function stop() {
         document.removeEventListener("mousemove", move);
         document.removeEventListener("mouseup", stop);
-        saveHistory();
       }
 
       document.addEventListener("mousemove", move);
       document.addEventListener("mouseup", stop);
     };
 
-    /* RESIZE */
+    /* SELECCIÓN */
     if (el.id === selectedId) {
       div.classList.add("selected");
 
       const handle = document.createElement("div");
-      handle.className = "handle br";
+      handle.className = "handle";
 
       handle.onmousedown = (e) => {
         e.stopPropagation();
 
         const startX = e.clientX;
         const startY = e.clientY;
-
         const startW = el.width;
         const startH = el.height;
-        const startSize = el.size;
 
         function resize(ev) {
-          const dx = ev.clientX - startX;
-          const dy = ev.clientY - startY;
-
-          if (el.type === "panel") {
-            el.width = Math.max(20, startW + dx);
-            el.height = Math.max(20, startH + dy);
-          } else {
-            el.size = Math.max(10, startSize + dx * 0.3);
-          }
-
+          el.width = startW + (ev.clientX - startX);
+          el.height = startH + (ev.clientY - startY);
           render();
         }
 
         function stop() {
           document.removeEventListener("mousemove", resize);
           document.removeEventListener("mouseup", stop);
-          saveHistory();
         }
 
         document.addEventListener("mousemove", resize);
@@ -287,25 +189,6 @@ function render() {
       };
 
       div.appendChild(handle);
-
-      /* DELETE BUTTON */
-      const del = document.createElement("div");
-      del.innerText = "✕";
-      del.style.position = "absolute";
-      del.style.top = "-10px";
-      del.style.right = "-10px";
-      del.style.background = "red";
-      del.style.color = "white";
-      del.style.cursor = "pointer";
-      del.style.fontSize = "12px";
-      del.style.padding = "2px 5px";
-
-      del.onclick = (e) => {
-        e.stopPropagation();
-        deleteElement();
-      };
-
-      div.appendChild(del);
     }
 
     canvas.appendChild(div);
@@ -314,9 +197,9 @@ function render() {
   generateCode();
 }
 
-/* =========================
+/* ======================
    PROPIEDADES
-========================= */
+====================== */
 function updatePanel() {
   const el = getElements().find(e => e.id === selectedId);
   if (!el) return;
@@ -338,45 +221,48 @@ Object.keys(inputs).forEach(k => {
       el[k] = inputs[k].value;
     }
 
-    saveHistory();
     render();
   };
 });
 
-/* =========================
+/* ======================
    DELETE
-========================= */
+====================== */
 function deleteElement() {
-  let elements = getElements();
-  elements = elements.filter(e => e.id !== selectedId);
-  screens[currentScreen] = elements;
+  screens[currentScreen] = getElements().filter(e => e.id !== selectedId);
   selectedId = null;
-
-  saveHistory();
   render();
 }
 
-/* =========================
-   EXPORT
-========================= */
+/* ======================
+   EXPORT (🔥 IMPORTANTE)
+====================== */
 function generateCode() {
-  let html = "";
-  let css = "";
+  let code = "";
 
-  getElements().forEach((el, i) => {
-    const c = "el" + i;
+  code += `<div id="app">\n`;
 
-    html += `<div class="${c}">${el.text}</div>\n`;
+  screens.forEach((screen, sIndex) => {
 
-    css += `.${c}{
-  position:absolute;
-  left:${el.x}px;
-  top:${el.y}px;
-}\n`;
+    code += `<div class="screen" id="screen-${sIndex}" style="display:${sIndex === 0 ? 'block':'none'}">\n`;
+
+    screen.forEach(el => {
+      code += `<div style="position:absolute;left:${el.x}px;top:${el.y}px;font-size:${el.size}px;color:${el.color};cursor:pointer;" onclick="goToScreen(${el.targetScreen})">${el.text}</div>\n`;
+    });
+
+    code += `</div>\n`;
   });
 
-  htmlOut.textContent = html;
-  cssOut.textContent = css;
+  code += `</div>\n`;
+
+  code += `<script>
+function goToScreen(n){
+  document.querySelectorAll('.screen').forEach(s=>s.style.display='none');
+  document.getElementById('screen-'+n).style.display='block';
+}
+<\/script>`;
+
+  output.textContent = code;
 }
 
 /* INIT */
