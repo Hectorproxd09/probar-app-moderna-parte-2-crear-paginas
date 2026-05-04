@@ -14,7 +14,6 @@ const cssOut = document.getElementById("css-code");
 /* ESTADO */
 let elements = [];
 let selectedId = null;
-let snapEnabled = false;
 
 /* HISTORIAL */
 let history = [];
@@ -26,31 +25,20 @@ function saveHistory() {
   historyIndex++;
 }
 
-/* =========================
-   DESELECCIÓN
-========================= */
-canvas.addEventListener("click", (e) => {
-  if (e.target === canvas) {
-    selectedId = null;
-    updatePanel();
-    render();
-  }
-});
-
-/* =========================
-   CREAR
-========================= */
+/* ======================
+   CREAR ELEMENTO
+====================== */
 function addElement(type) {
   elements.push({
     id: Date.now(),
     type,
-    text: type === "button" ? "Botón" : "Texto",
+    text: "Texto",
     x: 100,
     y: 100,
     width: 150,
     height: 80,
     size: 20,
-    color: "#000",
+    color: "#000000",
     link: "",
     z: elements.length
   });
@@ -59,47 +47,55 @@ function addElement(type) {
   render();
 }
 
-/* =========================
+/* ======================
+   DESELECCIONAR
+====================== */
+canvas.addEventListener("click", (e) => {
+  if (e.target === canvas) {
+    selectedId = null;
+    updatePanel();
+    render();
+  }
+});
+
+/* ======================
    RENDER
-========================= */
+====================== */
 function render() {
   canvas.innerHTML = "";
 
   elements.sort((a,b)=>a.z-b.z);
 
   elements.forEach(el => {
-    let d = document.createElement("div");
-    d.className = "element " + el.type;
+    const div = document.createElement("div");
+    div.className = "element " + el.type;
 
-    d.innerText = el.text;
+    div.innerText = el.text;
 
-    d.style.left = el.x + "px";
-    d.style.top = el.y + "px";
-    d.style.zIndex = el.z;
+    div.style.left = el.x + "px";
+    div.style.top = el.y + "px";
+    div.style.zIndex = el.z;
 
-    /* TEXTO */
-    if (el.type === "text" || el.type === "button") {
-      d.style.fontSize = el.size + "px";
-      d.style.color = el.color;
+    if (el.type !== "panel") {
+      div.style.fontSize = el.size + "px";
+      div.style.color = el.color;
     }
 
-    /* PANEL */
     if (el.type === "panel") {
-      d.style.width = el.width + "px";
-      d.style.height = el.height + "px";
+      div.style.width = el.width + "px";
+      div.style.height = el.height + "px";
     }
 
     /* LINK */
     if (el.link) {
-      d.style.cursor = "pointer";
-      d.onclick = (e) => {
+      div.onclick = (e) => {
         e.stopPropagation();
         window.open(el.link, "_blank");
       };
     }
 
     /* SELECCIÓN */
-    d.onclick = (e) => {
+    div.onclick = (e) => {
       e.stopPropagation();
       selectedId = el.id;
       el.z = Math.max(...elements.map(e=>e.z)) + 1;
@@ -107,24 +103,23 @@ function render() {
       render();
     };
 
-    /* EDIT INLINE (SIN CARTEL) */
-    d.ondblclick = (e) => {
+    /* EDIT INLINE */
+    div.ondblclick = (e) => {
       e.stopPropagation();
-
-      d.contentEditable = true;
-      d.focus();
+      div.contentEditable = true;
+      div.focus();
 
       function save() {
-        el.text = d.innerText;
-        d.contentEditable = false;
+        el.text = div.innerText;
+        div.contentEditable = false;
         updatePanel();
         saveHistory();
         render();
       }
 
-      d.onblur = save;
+      div.onblur = save;
 
-      d.onkeydown = (ev) => {
+      div.onkeydown = (ev) => {
         if (ev.key === "Enter") {
           ev.preventDefault();
           save();
@@ -133,7 +128,7 @@ function render() {
     };
 
     /* DRAG */
-    d.onmousedown = (e) => {
+    div.onmousedown = (e) => {
       e.preventDefault();
 
       const rect = canvas.getBoundingClientRect();
@@ -156,9 +151,9 @@ function render() {
       document.addEventListener("mouseup", stop);
     };
 
-    /* RESIZE DESDE ESQUINA */
+    /* RESIZE */
     if (el.id === selectedId) {
-      d.classList.add("selected");
+      div.classList.add("selected");
 
       const handle = document.createElement("div");
       handle.className = "handle";
@@ -174,8 +169,8 @@ function render() {
         const startSize = el.size;
 
         function resize(ev) {
-          let dx = ev.clientX - startX;
-          let dy = ev.clientY - startY;
+          const dx = ev.clientX - startX;
+          const dy = ev.clientY - startY;
 
           if (el.type === "panel") {
             el.width = startW + dx;
@@ -197,18 +192,18 @@ function render() {
         document.addEventListener("mouseup", stop);
       };
 
-      d.appendChild(handle);
+      div.appendChild(handle);
     }
 
-    canvas.appendChild(d);
+    canvas.appendChild(div);
   });
 
   generateCode();
 }
 
-/* =========================
-   PROPIEDADES DINÁMICAS
-========================= */
+/* ======================
+   PROPIEDADES
+====================== */
 function updatePanel() {
   const el = elements.find(e => e.id === selectedId);
 
@@ -220,34 +215,10 @@ function updatePanel() {
     return;
   }
 
-  /* TEXTO */
-  if (el.type === "text") {
-    inputs.text.style.display = "block";
-    inputs.size.style.display = "block";
-    inputs.color.style.display = "block";
-    inputs.link.style.display = "block";
-  }
-
-  /* BOTÓN */
-  if (el.type === "button") {
-    inputs.text.style.display = "block";
-    inputs.size.style.display = "block";
-    inputs.color.style.display = "block";
-    inputs.link.style.display = "block";
-  }
-
-  /* PANEL */
-  if (el.type === "panel") {
-    inputs.text.style.display = "none";
-    inputs.size.style.display = "none";
-    inputs.color.style.display = "block";
-    inputs.link.style.display = "none";
-  }
-
-  inputs.text.value = el.text || "";
-  inputs.size.value = el.size || "";
-  inputs.color.value = el.color || "#000";
-  inputs.link.value = el.link || "";
+  inputs.text.value = el.text;
+  inputs.size.value = el.size;
+  inputs.color.value = el.color;
+  inputs.link.value = el.link;
 }
 
 /* INPUTS */
@@ -262,9 +233,9 @@ Object.keys(inputs).forEach(k => {
   };
 });
 
-/* =========================
+/* ======================
    DELETE
-========================= */
+====================== */
 function deleteElement() {
   elements = elements.filter(e => e.id !== selectedId);
   selectedId = null;
@@ -272,9 +243,9 @@ function deleteElement() {
   render();
 }
 
-/* =========================
+/* ======================
    UNDO / REDO
-========================= */
+====================== */
 function undo() {
   if (historyIndex <= 0) return;
   historyIndex--;
@@ -289,9 +260,9 @@ function redo() {
   render();
 }
 
-/* =========================
+/* ======================
    EXPORT
-========================= */
+====================== */
 function generateCode() {
   let html = "";
   let css = "";
