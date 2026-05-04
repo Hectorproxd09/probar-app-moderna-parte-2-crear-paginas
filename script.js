@@ -15,9 +15,6 @@ const cssOut = document.getElementById("css-code");
 let elements = [];
 let selectedId = null;
 let snapEnabled = false;
-let currentScreen = "home";
-
-let background = { type: null, url: "" };
 
 /* HISTORIAL */
 let history = [];
@@ -29,121 +26,75 @@ function saveHistory() {
   historyIndex++;
 }
 
-/* SNAP */
-function toggleSnap() {
-  snapEnabled = !snapEnabled;
-  document.querySelector(".topbar button:nth-child(6)").textContent =
-    snapEnabled ? "☑ Snap" : "☐ Snap";
-}
+/* =========================
+   DESELECCIÓN
+========================= */
+canvas.addEventListener("click", (e) => {
+  if (e.target === canvas) {
+    selectedId = null;
+    updatePanel();
+    render();
+  }
+});
 
-/* CAMBIAR PANTALLA */
-function goToScreen(name) {
-  currentScreen = name;
-  selectedId = null;
-  render();
-}
-
-/* BACKGROUND */
-function setBackground() {
-  const url = document.getElementById("bg-url").value.trim();
-  if (!url) return;
-
-  background.type = url.match(/\.(mp4|webm|ogg)$/i) ? "video" : "image";
-  background.url = url;
-
-  render();
-}
-
-/* CREAR */
+/* =========================
+   CREAR
+========================= */
 function addElement(type) {
-  let link = "";
-
   elements.push({
     id: Date.now(),
     type,
-    text: "Texto",
+    text: type === "button" ? "Botón" : "Texto",
     x: 100,
     y: 100,
     width: 150,
     height: 80,
     size: 20,
     color: "#000",
-    font: "Arial",
-    glass: true,
-    link,
-    z: elements.length,
-    screen: currentScreen
+    link: "",
+    z: elements.length
   });
 
   saveHistory();
   render();
 }
 
-/* RENDER */
+/* =========================
+   RENDER
+========================= */
 function render() {
   canvas.innerHTML = "";
 
-  /* FILTRO POR PANTALLA */
-  let visible = elements.filter(e => e.screen === currentScreen);
+  elements.sort((a,b)=>a.z-b.z);
 
-  /* BACKGROUND */
-  if (background.type === "video") {
-    const v = document.createElement("video");
-    v.src = background.url;
-    v.autoplay = true;
-    v.loop = true;
-    v.muted = true;
-    v.className = "bg-video";
-    canvas.appendChild(v);
-  } else if (background.type === "image") {
-    canvas.style.background = `url(${background.url}) center/cover no-repeat`;
-  } else {
-    canvas.style.background = "white";
-  }
-
-  visible.sort((a,b)=>a.z-b.z);
-
-  visible.forEach(el => {
+  elements.forEach(el => {
     let d = document.createElement("div");
-    d.className = "element";
+    d.className = "element " + el.type;
 
     d.innerText = el.text;
-    d.style.left = el.x+"px";
-    d.style.top = el.y+"px";
+
+    d.style.left = el.x + "px";
+    d.style.top = el.y + "px";
     d.style.zIndex = el.z;
 
     /* TEXTO */
-    if (el.type === "text") {
-      d.style.fontSize = el.size+"px";
+    if (el.type === "text" || el.type === "button") {
+      d.style.fontSize = el.size + "px";
       d.style.color = el.color;
-      d.style.fontFamily = el.font;
     }
 
     /* PANEL */
     if (el.type === "panel") {
-      d.style.width = el.width+"px";
-      d.style.height = el.height+"px";
-
-      if (el.glass) {
-        d.style.background = "rgba(255,255,255,0.1)";
-        d.style.backdropFilter = "blur(10px)";
-      } else {
-        d.style.background = el.color;
-      }
+      d.style.width = el.width + "px";
+      d.style.height = el.height + "px";
     }
 
-    /* LINK (cualquier elemento) */
+    /* LINK */
     if (el.link) {
       d.style.cursor = "pointer";
-
       d.onclick = (e) => {
         e.stopPropagation();
-
-        if (el.link.startsWith("screen:")) {
-          goToScreen(el.link.replace("screen:", ""));
-        } else {
-          window.open(el.link, "_blank");
-        }
+        window.open(el.link, "_blank");
       };
     }
 
@@ -151,46 +102,47 @@ function render() {
     d.onclick = (e) => {
       e.stopPropagation();
       selectedId = el.id;
+      el.z = Math.max(...elements.map(e=>e.z)) + 1;
       updatePanel();
       render();
     };
 
-    /* EDIT INLINE */
+    /* EDIT INLINE (SIN CARTEL) */
     d.ondblclick = (e) => {
       e.stopPropagation();
+
       d.contentEditable = true;
       d.focus();
 
-      d.onblur = () => {
+      function save() {
         el.text = d.innerText;
+        d.contentEditable = false;
         updatePanel();
         saveHistory();
         render();
+      }
+
+      d.onblur = save;
+
+      d.onkeydown = (ev) => {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          save();
+        }
       };
     };
 
     /* DRAG */
     d.onmousedown = (e) => {
       e.preventDefault();
+
       const rect = canvas.getBoundingClientRect();
-      const ox = e.clientX - el.x - rect.left;
-      const oy = e.clientY - el.y - rect.top;
+      const offsetX = e.clientX - rect.left - el.x;
+      const offsetY = e.clientY - rect.top - el.y;
 
       function move(ev) {
-        let nx = ev.clientX - rect.left - ox;
-        let ny = ev.clientY - rect.top - oy;
-
-        if (snapEnabled) {
-          elements.forEach(o => {
-            if (o.id !== el.id) {
-              if (Math.abs(nx - o.x) < 8) nx = o.x;
-              if (Math.abs(ny - o.y) < 8) ny = o.y;
-            }
-          });
-        }
-
-        el.x = nx;
-        el.y = ny;
+        el.x = ev.clientX - rect.left - offsetX;
+        el.y = ev.clientY - rect.top - offsetY;
         render();
       }
 
@@ -204,8 +156,48 @@ function render() {
       document.addEventListener("mouseup", stop);
     };
 
+    /* RESIZE DESDE ESQUINA */
     if (el.id === selectedId) {
       d.classList.add("selected");
+
+      const handle = document.createElement("div");
+      handle.className = "handle";
+
+      handle.onmousedown = (e) => {
+        e.stopPropagation();
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+
+        const startW = el.width;
+        const startH = el.height;
+        const startSize = el.size;
+
+        function resize(ev) {
+          let dx = ev.clientX - startX;
+          let dy = ev.clientY - startY;
+
+          if (el.type === "panel") {
+            el.width = startW + dx;
+            el.height = startH + dy;
+          } else {
+            el.size = Math.max(10, startSize + dx * 0.3);
+          }
+
+          render();
+        }
+
+        function stop() {
+          document.removeEventListener("mousemove", resize);
+          document.removeEventListener("mouseup", stop);
+          saveHistory();
+        }
+
+        document.addEventListener("mousemove", resize);
+        document.addEventListener("mouseup", stop);
+      };
+
+      d.appendChild(handle);
     }
 
     canvas.appendChild(d);
@@ -214,10 +206,43 @@ function render() {
   generateCode();
 }
 
-/* PANEL DINÁMICO */
+/* =========================
+   PROPIEDADES DINÁMICAS
+========================= */
 function updatePanel() {
   const el = elements.find(e => e.id === selectedId);
-  if (!el) return;
+
+  if (!el) {
+    inputs.text.value = "";
+    inputs.size.value = "";
+    inputs.color.value = "#000000";
+    inputs.link.value = "";
+    return;
+  }
+
+  /* TEXTO */
+  if (el.type === "text") {
+    inputs.text.style.display = "block";
+    inputs.size.style.display = "block";
+    inputs.color.style.display = "block";
+    inputs.link.style.display = "block";
+  }
+
+  /* BOTÓN */
+  if (el.type === "button") {
+    inputs.text.style.display = "block";
+    inputs.size.style.display = "block";
+    inputs.color.style.display = "block";
+    inputs.link.style.display = "block";
+  }
+
+  /* PANEL */
+  if (el.type === "panel") {
+    inputs.text.style.display = "none";
+    inputs.size.style.display = "none";
+    inputs.color.style.display = "block";
+    inputs.link.style.display = "none";
+  }
 
   inputs.text.value = el.text || "";
   inputs.size.value = el.size || "";
@@ -237,7 +262,9 @@ Object.keys(inputs).forEach(k => {
   };
 });
 
-/* DELETE */
+/* =========================
+   DELETE
+========================= */
 function deleteElement() {
   elements = elements.filter(e => e.id !== selectedId);
   selectedId = null;
@@ -245,7 +272,9 @@ function deleteElement() {
   render();
 }
 
-/* UNDO / REDO */
+/* =========================
+   UNDO / REDO
+========================= */
 function undo() {
   if (historyIndex <= 0) return;
   historyIndex--;
@@ -260,24 +289,35 @@ function redo() {
   render();
 }
 
-/* EXPORT */
+/* =========================
+   EXPORT
+========================= */
 function generateCode() {
   let html = "";
-  let css = "body{margin:0;position:relative;}";
+  let css = "";
 
-  elements.forEach((el,i)=>{
-    const c="el"+i;
+  elements.forEach((el, i) => {
+    const c = "el" + i;
 
     html += `<div class="${c}">${el.text}</div>\n`;
 
-    css += `.${c}{position:absolute;left:${el.x}px;top:${el.y}px;z-index:${el.z};}`;
-
-    if (el.type === "text") {
-      css += `.${c}{font-size:${el.size}px;color:${el.color};font-family:${el.font};}`;
-    }
+    css += `.${c}{
+  position:absolute;
+  left:${el.x}px;
+  top:${el.y}px;
+}\n`;
 
     if (el.type === "panel") {
-      css += `.${c}{width:${el.width}px;height:${el.height}px;background:${el.glass?"rgba(255,255,255,0.1)":el.color};}`;
+      css += `.${c}{
+  width:${el.width}px;
+  height:${el.height}px;
+  background:${el.color};
+}\n`;
+    } else {
+      css += `.${c}{
+  font-size:${el.size}px;
+  color:${el.color};
+}\n`;
     }
   });
 
@@ -285,5 +325,6 @@ function generateCode() {
   cssOut.textContent = css;
 }
 
+/* INIT */
 saveHistory();
 render();
