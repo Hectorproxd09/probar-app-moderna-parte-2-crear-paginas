@@ -1,5 +1,6 @@
 const canvas = document.getElementById("canvas");
 
+/* INPUTS */
 const inputs = {
   text: document.getElementById("prop-text"),
   size: document.getElementById("prop-size"),
@@ -10,12 +11,15 @@ const inputs = {
 const htmlOut = document.getElementById("html-code");
 const cssOut = document.getElementById("css-code");
 
+/* ESTADO */
 let elements = [];
 let selectedId = null;
 let snapEnabled = false;
+let currentScreen = "home";
 
 let background = { type: null, url: "" };
 
+/* HISTORIAL */
 let history = [];
 let historyIndex = -1;
 
@@ -25,12 +29,21 @@ function saveHistory() {
   historyIndex++;
 }
 
+/* SNAP */
 function toggleSnap() {
   snapEnabled = !snapEnabled;
   document.querySelector(".topbar button:nth-child(6)").textContent =
     snapEnabled ? "☑ Snap" : "☐ Snap";
 }
 
+/* CAMBIAR PANTALLA */
+function goToScreen(name) {
+  currentScreen = name;
+  selectedId = null;
+  render();
+}
+
+/* BACKGROUND */
 function setBackground() {
   const url = document.getElementById("bg-url").value.trim();
   if (!url) return;
@@ -41,16 +54,9 @@ function setBackground() {
   render();
 }
 
-canvas.addEventListener("click", (e) => {
-  if (e.target === canvas) {
-    selectedId = null;
-    render();
-  }
-});
-
+/* CREAR */
 function addElement(type) {
   let link = "";
-  if (type === "button") link = prompt("Link:", "https://") || "";
 
   elements.push({
     id: Date.now(),
@@ -62,28 +68,23 @@ function addElement(type) {
     height: 80,
     size: 20,
     color: "#000",
+    font: "Arial",
+    glass: true,
     link,
-    z: elements.length
+    z: elements.length,
+    screen: currentScreen
   });
 
   saveHistory();
   render();
 }
 
-/* GUIAS */
-let guides = [];
-function clearGuides() { guides.forEach(g=>g.remove()); guides=[]; }
-function guide(type,pos){
-  const g=document.createElement("div");
-  g.className="guide "+type;
-  if(type==="v") g.style.left=pos+"px";
-  if(type==="h") g.style.top=pos+"px";
-  canvas.appendChild(g);
-  guides.push(g);
-}
-
+/* RENDER */
 function render() {
   canvas.innerHTML = "";
+
+  /* FILTRO POR PANTALLA */
+  let visible = elements.filter(e => e.screen === currentScreen);
 
   /* BACKGROUND */
   if (background.type === "video") {
@@ -95,99 +96,117 @@ function render() {
     v.className = "bg-video";
     canvas.appendChild(v);
   } else if (background.type === "image") {
-    const img = new Image();
-    img.src = background.url;
-    img.onload = () => {
-      const mode = img.width/img.height > canvas.clientWidth/canvas.clientHeight ? "contain":"cover";
-      canvas.style.background = `url(${background.url}) center/${mode} no-repeat`;
-    };
+    canvas.style.background = `url(${background.url}) center/cover no-repeat`;
   } else {
     canvas.style.background = "white";
   }
 
-  elements.sort((a,b)=>a.z-b.z);
+  visible.sort((a,b)=>a.z-b.z);
 
-  elements.forEach(el=>{
-    let d = el.type==="button"?document.createElement("a"):document.createElement("div");
+  visible.forEach(el => {
+    let d = document.createElement("div");
+    d.className = "element";
 
-    d.className="element "+el.type;
-    d.innerText=el.text;
-    d.style.left=el.x+"px";
-    d.style.top=el.y+"px";
-    d.style.zIndex=el.z;
+    d.innerText = el.text;
+    d.style.left = el.x+"px";
+    d.style.top = el.y+"px";
+    d.style.zIndex = el.z;
 
-    if(el.type==="button") d.href=el.link||"#";
-
-    if(el.type!=="panel"){
-      d.style.fontSize=el.size+"px";
-      d.style.color=el.color;
-    }else{
-      d.style.width=el.width+"px";
-      d.style.height=el.height+"px";
+    /* TEXTO */
+    if (el.type === "text") {
+      d.style.fontSize = el.size+"px";
+      d.style.color = el.color;
+      d.style.fontFamily = el.font;
     }
 
-    if(el.id===selectedId){
-      d.classList.add("selected");
-      addHandles(d,el);
+    /* PANEL */
+    if (el.type === "panel") {
+      d.style.width = el.width+"px";
+      d.style.height = el.height+"px";
+
+      if (el.glass) {
+        d.style.background = "rgba(255,255,255,0.1)";
+        d.style.backdropFilter = "blur(10px)";
+      } else {
+        d.style.background = el.color;
+      }
     }
+
+    /* LINK (cualquier elemento) */
+    if (el.link) {
+      d.style.cursor = "pointer";
+
+      d.onclick = (e) => {
+        e.stopPropagation();
+
+        if (el.link.startsWith("screen:")) {
+          goToScreen(el.link.replace("screen:", ""));
+        } else {
+          window.open(el.link, "_blank");
+        }
+      };
+    }
+
+    /* SELECCIÓN */
+    d.onclick = (e) => {
+      e.stopPropagation();
+      selectedId = el.id;
+      updatePanel();
+      render();
+    };
 
     /* EDIT INLINE */
-    d.ondblclick=e=>{
+    d.ondblclick = (e) => {
       e.stopPropagation();
-      d.contentEditable=true;
+      d.contentEditable = true;
       d.focus();
-      d.onblur=()=>{
-        el.text=d.innerText;
-        d.contentEditable=false;
+
+      d.onblur = () => {
+        el.text = d.innerText;
         updatePanel();
         saveHistory();
         render();
       };
     };
 
-    d.onclick=e=>{
-      e.stopPropagation();
-      selectedId=el.id;
-      el.z=Math.max(...elements.map(e=>e.z))+1;
-      updatePanel();
-      render();
-    };
-
-    d.onmousedown=e=>{
+    /* DRAG */
+    d.onmousedown = (e) => {
       e.preventDefault();
-      const rect=canvas.getBoundingClientRect();
-      const ox=e.clientX-el.x-rect.left;
-      const oy=e.clientY-el.y-rect.top;
+      const rect = canvas.getBoundingClientRect();
+      const ox = e.clientX - el.x - rect.left;
+      const oy = e.clientY - el.y - rect.top;
 
-      function move(ev){
-        clearGuides();
+      function move(ev) {
+        let nx = ev.clientX - rect.left - ox;
+        let ny = ev.clientY - rect.top - oy;
 
-        let nx=ev.clientX-rect.left-ox;
-        let ny=ev.clientY-rect.top-oy;
-
-        if(snapEnabled){
-          elements.forEach(o=>{
-            if(o.id!==el.id){
-              if(Math.abs(nx-o.x)<8){ nx=o.x; guide("v",o.x);}
-              if(Math.abs(ny-o.y)<8){ ny=o.y; guide("h",o.y);}
+        if (snapEnabled) {
+          elements.forEach(o => {
+            if (o.id !== el.id) {
+              if (Math.abs(nx - o.x) < 8) nx = o.x;
+              if (Math.abs(ny - o.y) < 8) ny = o.y;
             }
           });
         }
 
-        el.x=nx; el.y=ny;
+        el.x = nx;
+        el.y = ny;
         render();
       }
 
-      function stop(){
-        clearGuides();
-        document.removeEventListener("mousemove",move);
-        document.removeEventListener("mouseup",stop);
+      function stop() {
+        document.removeEventListener("mousemove", move);
+        document.removeEventListener("mouseup", stop);
         saveHistory();
       }
 
-      document.addEventListener("mousemove",move);
-      document.addEventListener("mouseup",stop);
+      document.addEventListener("mousemove", move);
+      document.addEventListener("mouseup", stop);
     };
+
+    if (el.id === selectedId) {
+      d.classList.add("selected");
+    }
 
     canvas.appendChild(d);
   });
@@ -195,110 +214,75 @@ function render() {
   generateCode();
 }
 
-function addHandles(div, el) {
-  ["br","tr","bl","tl","r","l","t","b"].forEach(pos=>{
-    const h=document.createElement("div");
-    h.className="handle "+pos;
-    h.onmousedown=e=>{
-      e.stopPropagation();
-      const sx=e.clientX, sy=e.clientY;
-      const sw=el.width, sh=el.height, ss=el.size;
+/* PANEL DINÁMICO */
+function updatePanel() {
+  const el = elements.find(e => e.id === selectedId);
+  if (!el) return;
 
-      function resize(ev){
-        let dx=ev.clientX-sx, dy=ev.clientY-sy;
-
-        if(el.type==="panel"){
-          if(pos.includes("r")) el.width=sw+dx;
-          if(pos.includes("l")) el.width=sw-dx;
-          if(pos.includes("b")) el.height=sh+dy;
-          if(pos.includes("t")) el.height=sh-dy;
-        } else {
-          el.size=Math.max(10, ss+dx*0.3);
-        }
-
-        render();
-      }
-
-      function stop(){
-        document.removeEventListener("mousemove",resize);
-        document.removeEventListener("mouseup",stop);
-        saveHistory();
-      }
-
-      document.addEventListener("mousemove",resize);
-      document.addEventListener("mouseup",stop);
-    };
-    div.appendChild(h);
-  });
+  inputs.text.value = el.text || "";
+  inputs.size.value = el.size || "";
+  inputs.color.value = el.color || "#000";
+  inputs.link.value = el.link || "";
 }
 
-function updatePanel(){
-  const el=elements.find(e=>e.id===selectedId);
-  if(!el) return;
-  inputs.text.value=el.text;
-  inputs.size.value=el.size;
-  inputs.color.value=el.color;
-  inputs.link.value=el.link;
-}
+/* INPUTS */
+Object.keys(inputs).forEach(k => {
+  inputs[k].oninput = () => {
+    const el = elements.find(e => e.id === selectedId);
+    if (!el) return;
 
-Object.keys(inputs).forEach(k=>{
-  inputs[k].oninput=()=>{
-    const el=elements.find(e=>e.id===selectedId);
-    if(!el) return;
-    el[k]=inputs[k].value;
+    el[k] = inputs[k].value;
     saveHistory();
     render();
   };
 });
 
-function deleteElement(){
-  if(!selectedId) return;
-  elements=elements.filter(e=>e.id!==selectedId);
-  selectedId=null;
+/* DELETE */
+function deleteElement() {
+  elements = elements.filter(e => e.id !== selectedId);
+  selectedId = null;
   saveHistory();
   render();
 }
 
-function undo(){
-  if(historyIndex<=0) return;
+/* UNDO / REDO */
+function undo() {
+  if (historyIndex <= 0) return;
   historyIndex--;
-  elements=JSON.parse(history[historyIndex]);
+  elements = JSON.parse(history[historyIndex]);
   render();
 }
 
-function redo(){
-  if(historyIndex>=history.length-1) return;
+function redo() {
+  if (historyIndex >= history.length - 1) return;
   historyIndex++;
-  elements=JSON.parse(history[historyIndex]);
+  elements = JSON.parse(history[historyIndex]);
   render();
 }
 
-/* 🔥 EXPORTA TAMBIÉN BACKGROUND */
-function generateCode(){
-  let html="", css="body{margin:0;position:relative;}\n";
-
-  if(background.type==="image"){
-    css+=`body{background:url(${background.url}) center/cover no-repeat;}\n`;
-  }
+/* EXPORT */
+function generateCode() {
+  let html = "";
+  let css = "body{margin:0;position:relative;}";
 
   elements.forEach((el,i)=>{
     const c="el"+i;
 
-    html+=el.type==="button"
-      ? `<a class="${c}" href="${el.link}">${el.text}</a>\n`
-      : `<div class="${c}">${el.type==="text"?el.text:""}</div>\n`;
+    html += `<div class="${c}">${el.text}</div>\n`;
 
-    css+=`.${c}{position:absolute;left:${el.x}px;top:${el.y}px;z-index:${el.z};}\n`;
+    css += `.${c}{position:absolute;left:${el.x}px;top:${el.y}px;z-index:${el.z};}`;
 
-    if(el.type==="panel"){
-      css+=`.${c}{width:${el.width}px;height:${el.height}px;background:rgba(255,255,255,0.1);backdrop-filter:blur(10px);}\n`;
-    } else {
-      css+=`.${c}{font-size:${el.size}px;color:${el.color};}\n`;
+    if (el.type === "text") {
+      css += `.${c}{font-size:${el.size}px;color:${el.color};font-family:${el.font};}`;
+    }
+
+    if (el.type === "panel") {
+      css += `.${c}{width:${el.width}px;height:${el.height}px;background:${el.glass?"rgba(255,255,255,0.1)":el.color};}`;
     }
   });
 
-  htmlOut.textContent=html;
-  cssOut.textContent=css;
+  htmlOut.textContent = html;
+  cssOut.textContent = css;
 }
 
 saveHistory();
