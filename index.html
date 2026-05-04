@@ -2,206 +2,49 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ProEditor - Visual Canvas</title>
+<title>Velion Builder</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
+<div class="topbar">
+  <button onclick="addElement('text')">Texto</button>
+  <button onclick="addElement('button')">Botón</button>
+  <button onclick="addElement('panel')">Panel</button>
+
+  <input id="bg-url" placeholder="Fondo (img o video)">
+  <button onclick="setBackground()">Aplicar</button>
+
+  <button onclick="toggleSnap()">☐ Snap</button>
+
+  <button onclick="undo()">↶</button>
+  <button onclick="redo()">↷</button>
+</div>
+
 <div class="app">
-  <!-- TOP BAR -->
-  <div class="topbar" id="topbar">
-    <span class="logo">✦ ProEditor</span>
-    <button onclick="addElement('text')">+ Texto</button>
-    <button onclick="addElement('panel')">+ Panel</button>
-    <button onclick="addElement('link')">+ Enlace</button>
-    <button onclick="addElement('image')">+ Imagen</button>
-    <button onclick="addElement('video')">+ Video</button>
-    <div class="sep"></div>
-    <button onclick="deleteSelected()">🗑 Eliminar</button>
-    <button onclick="duplicateSelected()">📋 Duplicar</button>
-    <div class="sep"></div>
-    <button onclick="toggleGrid()" id="gridBtn">⊞ Grid</button>
-    <button onclick="exportJSON()">📥 Exportar</button>
-    <button onclick="document.getElementById('importFile').click()">📤 Importar</button>
-    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
-    <div class="sep"></div>
-    <button class="primary" onclick="previewMode()">👁 Vista Previa</button>
+  <!-- 🔥 SIDEBAR IZQUIERDA -->
+  <div class="panel-ui">
+    <h3>Propiedades</h3>
+
+    <input id="prop-text" placeholder="Texto">
+    <input id="prop-size" type="number">
+    <input id="prop-color" type="color">
+    <input id="prop-link" placeholder="Link">
+
+    <button onclick="deleteElement()">Eliminar</button>
+
+    <hr>
+
+    <h3>HTML</h3>
+    <pre id="html-code"></pre>
+
+    <h3>CSS</h3>
+    <pre id="css-code"></pre>
   </div>
 
   <!-- CANVAS -->
-  <div class="canvas-wrap" id="canvasWrap">
-    <div class="canvas" id="canvas"></div>
-  </div>
-
-  <!-- TOGGLE PANEL -->
-  <button class="side-toggle" id="sideToggle" onclick="togglePanel()">⚙</button>
-
-  <!-- SIDE PANEL -->
-  <div class="sidepanel" id="sidepanel">
-    <h2>🎨 Propiedades</h2>
-    
-    <!-- Background -->
-    <div class="sec">
-      <h3>Fondo del Canvas</h3>
-      <div class="sp-row">
-        <label>Color:</label>
-        <input type="color" id="bgColor" value="#1a1a2e" onchange="setCanvasBg('color',this.value)">
-      </div>
-      <div class="sp-row">
-        <label>URL Fondo:</label>
-        <input type="url" id="bgUrl" placeholder="URL de imagen o video..." onchange="setCanvasBg('url',this.value)">
-      </div>
-      <div class="sp-group">
-        <button onclick="setCanvasBg('color','#1a1a2e')">🌌 Default</button>
-        <button onclick="setCanvasBg('color','#0f0f23')">🌑 Oscuro</button>
-        <button onclick="setCanvasBg('color','#f0f0f5')">☀️ Claro</button>
-        <button onclick="clearBg()">✕ Limpiar</button>
-      </div>
-    </div>
-
-    <!-- Add Elements -->
-    <div class="sec">
-      <h3>Agregar Elemento</h3>
-      <div class="sp-group">
-        <button onclick="addElement('text')">📝 Texto</button>
-        <button onclick="addElement('panel')">🪟 Panel</button>
-        <button onclick="addElement('link')">🔗 Enlace</button>
-        <button onclick="addElement('image')">🖼 Imagen</button>
-        <button onclick="addElement('video')">🎬 Video</button>
-      </div>
-    </div>
-
-    <!-- Selected Properties -->
-    <div class="sec" id="propSection">
-      <h3>Elemento Seleccionado</h3>
-      <div id="noSelection" class="no-sel">Haz clic en un elemento del canvas</div>
-      
-      <div id="selProps" style="display:none;">
-        <div class="sp-row"><label>Tipo:</label><span id="selType" class="sel-type"></span></div>
-        
-        <div class="sp-row"><label>X:</label><input type="number" id="propX" onchange="updateProp('x',this.value)"></div>
-        <div class="sp-row"><label>Y:</label><input type="number" id="propY" onchange="updateProp('y',this.value)"></div>
-        <div class="sp-row"><label>Ancho:</label><input type="number" id="propW" onchange="updateProp('w',this.value)"></div>
-        <div class="sp-row"><label>Alto:</label><input type="number" id="propH" onchange="updateProp('h',this.value)"></div>
-        
-        <div class="sp-row">
-          <label>Rotación:</label>
-          <input type="range" id="propRot" min="0" max="360" value="0" oninput="updateProp('rot',this.value)">
-          <span class="val" id="rotVal">0°</span>
-        </div>
-        
-        <div class="sp-row"><label>Color fondo:</label><input type="color" id="propBgColor" onchange="updateProp('bg',this.value)"></div>
-        <div class="sp-row"><label>Color texto:</label><input type="color" id="propTextColor" onchange="updateProp('textColor',this.value)"></div>
-        
-        <div class="sp-row">
-          <label>Opacidad:</label>
-          <input type="range" id="propOpacity" min="0" max="100" value="100" oninput="updateProp('opacity',this.value)">
-          <span class="val" id="opacityVal">100%</span>
-        </div>
-        
-        <div class="sp-row">
-          <label>Borde redondo:</label>
-          <input type="range" id="propRadius" min="0" max="50" value="12" oninput="updateProp('radius',this.value)">
-          <span class="val" id="radiusVal">12px</span>
-        </div>
-        
-        <div class="sp-row">
-          <label>Vidrio (blur):</label>
-          <input type="range" id="propBlur" min="0" max="40" value="12" oninput="updateProp('blur',this.value)">
-          <span class="val" id="blurVal">12px</span>
-        </div>
-        
-        <div id="textProps" style="display:none;">
-          <h3>Formato de Texto</h3>
-          <div class="sp-group">
-            <button class="icon-btn" onclick="execFormat('bold')" title="Negrita"><b>B</b></button>
-            <button class="icon-btn" onclick="execFormat('italic')" title="Cursiva"><i>I</i></button>
-            <button class="icon-btn" onclick="execFormat('underline')" title="Subrayado"><u>U</u></button>
-            <button class="icon-btn" onclick="execFormat('strikeThrough')" title="Tachado"><s>S</s></button>
-          </div>
-          <div class="sp-row">
-            <label>Tamaño:</label>
-            <input type="number" id="propFontSize" value="16" min="8" max="200" onchange="updateProp('fontSize',this.value)">
-            <span class="val">px</span>
-          </div>
-          <div class="sp-group" style="margin-top:6px;">
-            <button onclick="execFormat('justifyLeft')">⬅</button>
-            <button onclick="execFormat('justifyCenter')">⬡</button>
-            <button onclick="execFormat('justifyRight')">➡</button>
-          </div>
-        </div>
-        
-        <div id="linkProps" style="display:none;">
-          <h3>URL del Enlace</h3>
-          <div class="sp-row">
-            <label>URL:</label>
-            <input type="url" id="propLinkUrl" placeholder="https://..." onchange="updateProp('linkUrl',this.value)">
-          </div>
-        </div>
-        
-        <div id="mediaProps" style="display:none;">
-          <h3>URL del Medio</h3>
-          <div class="sp-row">
-            <label>URL:</label>
-            <input type="url" id="propMediaUrl" placeholder="https://..." onchange="updateProp('mediaUrl',this.value)">
-          </div>
-        </div>
-        
-        <h3>Colores Rápidos</h3>
-        <div class="sp-color-presets">
-          <div class="cp" style="background:#6c5ce7" onclick="quickColor('bg','#6c5ce7')"></div>
-          <div class="cp" style="background:#a29bfe" onclick="quickColor('bg','#a29bfe')"></div>
-          <div class="cp" style="background:#00cec9" onclick="quickColor('bg','#00cec9')"></div>
-          <div class="cp" style="background:#fd79a8" onclick="quickColor('bg','#fd79a8')"></div>
-          <div class="cp" style="background:#e17055" onclick="quickColor('bg','#e17055')"></div>
-          <div class="cp" style="background:#00b894" onclick="quickColor('bg','#00b894')"></div>
-          <div class="cp" style="background:#fdcb6e" onclick="quickColor('bg','#fdcb6e')"></div>
-          <div class="cp" style="background:#e84393" onclick="quickColor('bg','#e84393')"></div>
-          <div class="cp" style="background:#0984e3" onclick="quickColor('bg','#0984e3')"></div>
-          <div class="cp" style="background:rgba(255,255,255,0.12)" onclick="quickColor('bg','rgba(255,255,255,0.12)')"></div>
-        </div>
-        
-        <div class="sp-row" style="margin-top:8px;">
-          <button onclick="moveZIndex(-1)" class="z-btn">⬇ Atrás</button>
-          <button onclick="moveZIndex(1)" class="z-btn">⬆ Adelante</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Alignment -->
-    <div class="sec">
-      <h3>Alinear Elementos</h3>
-      <div class="align-grid">
-        <button onclick="alignElements('left')" title="Izquierda">⊣</button>
-        <button onclick="alignElements('centerH')" title="Centrar H">⬡</button>
-        <button onclick="alignElements('right')" title="Derecha">⊢</button>
-        <button onclick="alignElements('top')" title="Arriba">⊤</button>
-        <button onclick="alignElements('centerV')" title="Centrar V">⨁</button>
-        <button onclick="alignElements('bottom')" title="Abajo">⊥</button>
-      </div>
-      <div class="sp-group" style="margin-top:6px;">
-        <button onclick="distributeElements('h')">↔ Distribuir H</button>
-        <button onclick="distributeElements('v')">↕ Distribuir V</button>
-      </div>
-    </div>
-
-    <!-- Snap to grid -->
-    <div class="sec">
-      <div class="sp-row">
-        <label>Snap to grid:</label>
-        <input type="checkbox" id="snapToggle" checked onchange="updateSnap()" class="checkbox">
-      </div>
-      <div class="sp-row">
-        <label>Grid size:</label>
-        <input type="number" id="gridSize" value="20" min="5" max="100" onchange="updateSnap()" class="num-sm">
-        <span class="val">px</span>
-      </div>
-    </div>
-  </div>
+  <div id="canvas"></div>
 </div>
-
-<div class="toast" id="toast"></div>
 
 <script src="script.js"></script>
 </body>
