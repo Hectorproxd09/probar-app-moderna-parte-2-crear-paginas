@@ -14,7 +14,7 @@ const jsOut = document.getElementById("js-code");
 /* =========================
    ESTADO
 ========================= */
-let screens = [[]]; // 🔥 múltiples pantallas
+let screens = [[]];
 let currentScreen = 0;
 
 let selectedId = null;
@@ -47,7 +47,7 @@ function addScreen() {
 function switchScreen(index) {
   currentScreen = index;
   selectedId = null;
-  updateScreenUI();
+  updatePanel();
   render();
 }
 
@@ -98,11 +98,6 @@ canvas.addEventListener("click", (e) => {
    CREAR
 ========================= */
 function addElement(type) {
-  let link = "";
-  if (type === "button") {
-    link = prompt("Link del botón:", "") || "";
-  }
-
   screens[currentScreen].push({
     id: Date.now(),
     type,
@@ -113,7 +108,6 @@ function addElement(type) {
     height: 80,
     size: 20,
     color: "#000000",
-    link,
     targetScreen: null,
     z: screens[currentScreen].length
   });
@@ -148,16 +142,8 @@ function render() {
   elements.sort((a,b) => a.z - b.z);
 
   elements.forEach(el => {
-    let div;
-
-    if (el.type === "button") {
-      div = document.createElement("a");
-      div.href = el.link || "#";
-      div.className = "element button";
-    } else {
-      div = document.createElement("div");
-      div.className = "element " + el.type;
-    }
+    const div = document.createElement("div");
+    div.className = "element " + el.type;
 
     div.innerText = el.text;
 
@@ -175,16 +161,24 @@ function render() {
       div.style.height = el.height + "px";
     }
 
-    /* CLICK */
+    /* CLICK (🔥 FIX IMPORTANTE) */
     div.onclick = (e) => {
       e.stopPropagation();
+
+      // 🔥 si tiene pantalla → navegar
+      if (el.targetScreen !== null) {
+        switchScreen(el.targetScreen);
+        return;
+      }
+
+      // si no → seleccionar normal
       selectedId = el.id;
       el.z = Math.max(...elements.map(e => e.z)) + 1;
       updatePanel();
       render();
     };
 
-    /* DOBLE CLICK EDIT INLINE */
+    /* EDIT INLINE */
     div.ondblclick = (e) => {
       e.stopPropagation();
 
@@ -237,14 +231,6 @@ function render() {
       document.addEventListener("mouseup", stop);
     };
 
-    /* CAMBIO DE PANTALLA */
-    if (el.targetScreen !== null) {
-      div.onclick = (e) => {
-        e.stopPropagation();
-        switchScreen(el.targetScreen);
-      };
-    }
-
     /* HANDLE */
     if (el.id === selectedId) {
       div.classList.add("selected");
@@ -288,7 +274,7 @@ function render() {
 
       div.appendChild(handle);
 
-      /* BOTÓN ELIMINAR */
+      /* DELETE */
       const del = document.createElement("div");
       del.innerText = "✕";
       del.style.position = "absolute";
